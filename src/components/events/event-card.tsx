@@ -1,0 +1,56 @@
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
+import { formatEventDate, monogram, type EventRow } from "@/lib/events";
+import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
+
+export function EventCard({ event }: { event: EventRow }) {
+  const [first, second] = monogram(event.title);
+  const date = formatEventDate(event.event_date);
+
+  return (
+    <article className="flex items-center gap-4 rounded-[1.75rem] bg-card p-4 shadow-sm sm:p-5">
+      <div className="grid size-16 shrink-0 place-items-center rounded-full bg-lilac font-serif text-2xl text-ink sm:size-20 sm:text-3xl">
+        <span>
+          {first}
+          {second && (
+            <>
+              <span className="text-primary">&amp;</span>
+              {second}
+            </>
+          )}
+        </span>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          {t.eventTypeLabels[event.event_type]}
+        </p>
+        <h2 className="truncate font-heading text-xl font-bold sm:text-2xl">{event.title}</h2>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          {date && (
+            <span className="inline-flex items-center gap-1">
+              <CalendarDays className="size-4" aria-hidden />
+              {date}
+            </span>
+          )}
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+              event.uploads_open ? "bg-blaze/15 text-primary" : "bg-muted text-muted-foreground",
+            )}
+          >
+            <span className={cn("size-1.5 rounded-full", event.uploads_open ? "bg-primary" : "bg-muted-foreground")} />
+            {event.uploads_open ? t.dashboard.uploadsOpen : t.dashboard.uploadsClosed}
+          </span>
+        </div>
+        <Link
+          href={`/event/${event.slug}`}
+          className="mt-2 inline-block truncate text-sm font-semibold underline decoration-lilac decoration-2 underline-offset-4"
+        >
+          /event/{event.slug}
+        </Link>
+      </div>
+    </article>
+  );
+}
