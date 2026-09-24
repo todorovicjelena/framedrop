@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Figtree, Gloock } from "next/font/google";
+import { ConfirmProvider } from "@/components/confirm-provider";
+import { Toaster } from "@/components/toaster";
 import { t } from "@/lib/i18n";
 import "./globals.css";
 
@@ -29,7 +31,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="sr-Latn" className={`${body.variable} ${display.variable} ${serif.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) add attributes to <body> */}
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
+        <ConfirmProvider>{children}</ConfirmProvider>
+        <Toaster />
+      </body>
     </html>
   );
 }
