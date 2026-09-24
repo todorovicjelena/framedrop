@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyPin } from "@/lib/pin";
+import { eventPinOk } from "@/lib/pin";
 import { rateLimit } from "@/lib/rate-limit";
 import { deleteObject, objectSize, presignPut } from "@/lib/r2";
 import { mediaFileName, signMedia } from "@/lib/media";
@@ -27,7 +27,7 @@ async function openEvent(slug: string, pin: string): Promise<ActionResult<{ id: 
 
   if (!event) return { ok: false, error: errors.closed };
   if (isUploadClosed(event)) return { ok: false, error: errors.closed };
-  if (event.pin_hash && !(await verifyPin(pin, event.pin_hash))) return { ok: false, error: errors.wrongPin };
+  if (!(await eventPinOk(event.pin_hash, pin))) return { ok: false, error: errors.wrongPin };
   return { ok: true, id: event.id };
 }
 
@@ -140,7 +140,7 @@ export async function deleteMyUpload(
   const db = createAdminClient();
   const { data: event } = await db.from("events").select("id, pin_hash").eq("slug", slug).maybeSingle();
   if (!event) return { ok: false, error: errors.deleteFailed };
-  if (event.pin_hash && !(await verifyPin(input.pin, event.pin_hash))) return { ok: false, error: errors.wrongPin };
+  if (!(await eventPinOk(event.pin_hash, input.pin))) return { ok: false, error: errors.wrongPin };
 
   const { data: deleted } = await db
     .from("uploads")
@@ -183,7 +183,7 @@ export async function listGuestGallery(
     .eq("slug", slug)
     .maybeSingle();
   if (!event?.guests_can_view) return { ok: false, error: t.guest.galleryClosed };
-  if (event.pin_hash && !(await verifyPin(pin, event.pin_hash))) return { ok: false, error: errors.wrongPin };
+  if (!(await eventPinOk(event.pin_hash, pin))) return { ok: false, error: errors.wrongPin };
 
   const { data: uploads } = await db
     .from("uploads")

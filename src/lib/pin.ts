@@ -20,3 +20,10 @@ export async function verifyPin(pin: string, stored: string) {
   const actual = await scryptAsync(pin, Buffer.from(saltHex, "hex"), expected.length);
   return timingSafeEqual(actual, expected);
 }
+
+// True when the event has no PIN, or the given PIN matches. Use this at every
+// guest action so the "no PIN set" case can't be forgotten.
+export async function eventPinOk(pinHash: string | null, pin: string) {
+  if (!pinHash) return true;
+  return verifyPin(pin, pinHash);
+}
