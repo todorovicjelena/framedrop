@@ -44,6 +44,35 @@ export async function downloadAsZip(
     }
   }
 
+  // If all files are images and we're on a mobile device, try sharing the
+  // individual image files so the user can save them directly to Photos/Gallery
+  // via the native share sheet. This often gives a better UX than a ZIP.
+  const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const imageRegex = /\.(jpe?g|png|gif|webp|heic|heif|avif|bmp|svg)$/i;
+  const allImages = files.every((f) => imageRegex.test(f.name));
+
+  if (isMobile && allImages) {
+    try {
+      const imageFiles: File[] = [];
+      for (const fileItem of files) {
+        const response = await fetch(fileItem.url, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Download failed: ${fileItem.name}`);
+        const blobPart = await response.blob();
+        imageFiles.push(new File([blobPart], fileItem.name, { type: blobPart.type || "image/*" }));
+        onProgress?.(++done, files.length);
+      }
+
+      if ((navigator as any).canShare?.({ files: imageFiles })) {
+        await (navigator as any).share({ files: imageFiles, title: zipName });
+        return "saved";
+      }
+    } catch (e) {
+      // Sharing images failed — fall back to creating a ZIP below.
+      // eslint-disable-next-line no-console
+      console.warn("Image sharing failed or not available — falling back to ZIP", e);
+    }
+  }
+
   const zip = downloadZip(entries());
   if (writable) {
     await zip.body!.pipeTo(writable);
@@ -76,8 +105,6 @@ export async function downloadAsZip(
   const a = document.createElement("a");
   a.href = blobUrl;
   a.download = zipName;
-
-  const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isMobile) {
     // Visible floating banner with a link and brief instructions.
