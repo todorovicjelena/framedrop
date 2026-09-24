@@ -67,118 +67,120 @@ function pill(
   return h;
 }
 
+// Brand palette, straight from globals.css.
+const CREAM = "#f9f2e6";
+const LILAC = "#cfb0ff";
+const BLAZE = "#ff6a33";
+const INK = "#1d1b24";
+
+// The same orange ribbons as <Swirls /> (viewBox 1200×800), so the printed card
+// reads as part of the site.
+const SWIRLS: [string, number][] = [
+  ["M-80 180C120 40 330 20 420 140C510 260 360 420 190 520C40 610 -40 720 -60 900", 150],
+  ["M1300 40C1080 120 930 300 880 520C840 700 900 820 980 900", 130],
+  ["M560 -120C640 20 760 60 860 20", 110],
+  ["M430 930C520 760 700 700 820 780", 100],
+];
+
 async function buildCard(url: string, title: string, pin: string): Promise<string> {
   const W = 1080;
   const H = 1500;
-  const cardX = 56;
-  const cardY = 56;
-  const cardW = W - cardX * 2;
-  const cardH = H - cardY * 2;
+  const px = 40;
+  const py = 40;
+  const pw = W - px * 2;
+  const ph = H - py * 2;
   const cx = W / 2;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d context");
+  const ls = ctx as CanvasRenderingContext2D & { letterSpacing: string };
 
-  // Warm cream → lilac page behind the card.
-  const page = ctx.createLinearGradient(0, 0, 0, H);
-  page.addColorStop(0, "#fbf6ee");
-  page.addColorStop(1, "#f0e7ff");
-  ctx.fillStyle = page;
+  // Cream page, then the rounded lilac panel.
+  ctx.fillStyle = "#fbf6ee";
   ctx.fillRect(0, 0, W, H);
-
-  // White card with a soft shadow.
   ctx.save();
-  ctx.shadowColor = "rgba(60,40,90,0.18)";
-  ctx.shadowBlur = 60;
-  ctx.shadowOffsetY = 24;
-  roundRect(ctx, cardX, cardY, cardW, cardH, 60);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  ctx.restore();
-
-  // Sunset banner (blaze → lilac), clipped to the card's rounded top.
-  const bannerH = 220;
-  ctx.save();
-  roundRect(ctx, cardX, cardY, cardW, cardH, 60);
+  roundRect(ctx, px, py, pw, ph, 72);
   ctx.clip();
-  const banner = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + bannerH);
-  banner.addColorStop(0, "#ff6a33");
-  banner.addColorStop(0.55, "#f45a1f");
-  banner.addColorStop(1, "#b98cff");
-  ctx.fillStyle = banner;
-  ctx.fillRect(cardX, cardY, cardW, bannerH);
+  ctx.fillStyle = LILAC;
+  ctx.fillRect(px, py, pw, ph);
+
+  // Orange swirls, scaled to cover the panel (same as preserveAspectRatio="slice").
+  const scale = Math.max(pw / 1200, ph / 800);
+  ctx.save();
+  ctx.translate(px + (pw - 1200 * scale) / 2, py + (ph - 800 * scale) / 2);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = BLAZE;
+  ctx.lineCap = "round";
+  for (const [d, width] of SWIRLS) {
+    ctx.lineWidth = width;
+    ctx.stroke(new Path2D(d));
+  }
+  ctx.restore();
   ctx.restore();
 
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
 
-  // Kicker on the banner (letter-spaced).
-  const ls = ctx as CanvasRenderingContext2D & { letterSpacing: string };
-  const prevLs = ls.letterSpacing ?? "0px";
-  ls.letterSpacing = "8px";
-  ctx.fillStyle = "rgba(255,255,255,0.95)";
-  ctx.font = "bold 30px system-ui, -apple-system, sans-serif";
-  ctx.fillText(q.kicker, cx + 4, cardY + 128);
-  ls.letterSpacing = prevLs;
+  // Kicker.
+  ls.letterSpacing = "2px";
+  ctx.fillStyle = CREAM;
+  ctx.font = "600 30px system-ui, -apple-system, sans-serif";
+  ctx.fillText(q.kicker, cx, py + 140);
+  ls.letterSpacing = "0px";
 
-  // Event name.
-  ctx.fillStyle = "#1d1b24";
-  ctx.font = "bold 68px Georgia, 'Times New Roman', serif";
-  const afterTitle = drawWrapped(ctx, title, cx, cardY + 310, cardW - 140, 80);
+  // Event name — the big cream serif headline.
+  ctx.fillStyle = CREAM;
+  ctx.font = "84px Georgia, 'Times New Roman', serif";
+  const afterTitle = drawWrapped(ctx, title, cx, py + 270, pw - 140, 92);
 
-  // Warm invite line.
-  ctx.fillStyle = "#9b7bd6";
-  ctx.font = "italic 40px Georgia, 'Times New Roman', serif";
-  const headingY = afterTitle + 28;
-  ctx.fillText(q.cardHeading, cx, headingY);
-
-  // QR in a soft lilac frame.
-  const qs = 500;
+  // QR on a white block, so it always scans.
+  const qs = 520;
+  const pad = 42;
+  const block = qs + pad * 2;
   const qx = (W - qs) / 2;
-  const qy = headingY + 56;
+  const blockY = afterTitle + 56;
   const qr = document.createElement("canvas");
-  await QRCode.toCanvas(qr, url, { width: qs, margin: 1, color: { dark: "#2a1f3d", light: "#ffffff" } });
-  ctx.fillStyle = "#f3ecff";
-  roundRect(ctx, qx - 44, qy - 44, qs + 88, qs + 88, 44);
-  ctx.fill();
+  await QRCode.toCanvas(qr, url, { width: qs, margin: 0, color: { dark: INK, light: "#ffffff" } });
   ctx.fillStyle = "#ffffff";
-  roundRect(ctx, qx - 22, qy - 22, qs + 44, qs + 44, 30);
+  roundRect(ctx, cx - block / 2, blockY, block, block, 40);
   ctx.fill();
-  ctx.drawImage(qr, qx, qy);
+  ctx.drawImage(qr, qx, blockY + pad);
 
-  // Instruction under the QR.
-  ctx.fillStyle = "#6b6574";
-  ctx.font = "500 32px system-ui, -apple-system, sans-serif";
-  let y = qy + qs + 92;
-  ctx.fillText(q.instruction, cx, y);
-
-  // Link pill.
-  y += 54;
-  pill(ctx, url.replace(/^https?:\/\//, ""), cx, y, {
-    font: "600 30px system-ui, -apple-system, sans-serif",
-    textColor: "#5a4a7a",
-    bg: "#f0e7ff",
+  // Instruction in a cream pill, like the description on the site.
+  let y = blockY + block + 70;
+  pill(ctx, q.instruction, cx, y, {
+    font: "500 29px system-ui, -apple-system, sans-serif",
+    textColor: INK,
+    bg: "rgba(249,242,230,0.92)",
+    h: 76,
+    padX: 36,
   });
 
-  // Optional PIN pill (blaze).
+  // The link itself, in cream.
+  y += 78;
+  ctx.fillStyle = CREAM;
+  ctx.font = "600 30px system-ui, -apple-system, sans-serif";
+  ctx.fillText(url.replace(/^https?:\/\//, ""), cx, y);
+
+  // Optional PIN, as a blaze button.
   if (pin) {
-    y += 86;
+    y += 74;
     pill(ctx, `PIN · ${pin}`, cx, y, {
       font: "bold 36px system-ui, -apple-system, sans-serif",
-      textColor: "#ffffff",
-      bg: "#f45a1f",
+      textColor: CREAM,
+      bg: BLAZE,
+      h: 78,
     });
   }
 
-  // Footer: brand + tagline, anchored to the bottom of the card.
-  ctx.fillStyle = "#1d1b24";
-  ctx.font = "bold 30px system-ui, -apple-system, sans-serif";
-  ctx.fillText(t.app.name, cx, H - 140);
-  ctx.fillStyle = "#9a94a3";
-  ctx.font = "500 26px system-ui, -apple-system, sans-serif";
-  ctx.fillText(q.footer, cx, H - 100);
+  // Uppercase strip at the bottom, like the site's footer line.
+  ls.letterSpacing = "1px";
+  ctx.fillStyle = CREAM;
+  ctx.font = "800 26px system-ui, -apple-system, sans-serif";
+  ctx.fillText(`${t.app.name} · ${q.footer}`.toUpperCase(), cx, H - py - 60);
+  ls.letterSpacing = "0px";
 
   return canvas.toDataURL("image/png");
 }
