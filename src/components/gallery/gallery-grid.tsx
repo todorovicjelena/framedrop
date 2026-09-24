@@ -229,7 +229,7 @@ export function GalleryGrid({
                 {t.gallery.deleteSelected(deletableSelected.length)}
               </Button>
             )}
-            <Button type="button" variant="ghost" className="text-foreground" onClick={stopSelecting}>
+            <Button type="button" variant="outline" className="text-foreground" onClick={stopSelecting}>
               <X aria-hidden />
               {t.gallery.cancelSelect}
             </Button>
