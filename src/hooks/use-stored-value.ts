@@ -6,7 +6,7 @@ import { useCallback, useSyncExternalStore } from "react";
 // hydration mismatches (the server always sees null). Never throws — private
 // browsing modes can block storage.
 type Area = "local" | "session";
-const EVENT = "framedrop:storage";
+const EVENT = "momentdrop:storage";
 
 function storage(area: Area) {
   try {
@@ -56,10 +56,10 @@ export function useStoredValue(area: Area, key: string) {
 
 // Random id for this browser, created on first use.
 export function guestToken() {
-  let token = readStored("local", "framedrop:guest-token");
+  let token = readStored("local", "momentdrop:guest-token");
   if (!token) {
     token = crypto.randomUUID();
-    writeStored("local", "framedrop:guest-token", token);
+    writeStored("local", "momentdrop:guest-token", token);
   }
   return token;
 }

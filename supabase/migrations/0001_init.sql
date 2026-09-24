@@ -1,4 +1,4 @@
--- FrameDrop — initial schema
+-- MomentDrop — initial schema
 -- Run in Supabase: SQL Editor → New query → paste → Run.
 --
 -- Security model:

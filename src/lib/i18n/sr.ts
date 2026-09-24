@@ -16,7 +16,7 @@ export const sr = {
     delete: "Obriši",
   },
   app: {
-    name: "FrameDrop",
+    name: "MomentDrop",
     tagline: "Sve fotografije i snimci sa vaše proslave — na jednom mestu.",
     headline: ["Svaki kadar", "sa proslave."],
     kicker: "Jedan QR kod. Sve uspomene.",

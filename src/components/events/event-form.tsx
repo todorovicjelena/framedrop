@@ -14,7 +14,7 @@ import type { EventType } from "@/lib/events";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
-// linkPrefix: what guests' links start with, e.g. "framedrop.rs/event/"
+// linkPrefix: what guests' links start with, e.g. "momentdrop.rs/event/"
 export function EventForm({ linkPrefix }: { linkPrefix: string }) {
   const [state, formAction, pending] = useActionState<CreateEventState, FormData>(createEvent, undefined);
   const [type, setType] = useState<EventType>("wedding");
