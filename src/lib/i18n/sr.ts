@@ -17,8 +17,8 @@ export const sr = {
   },
   app: {
     name: "MomentDrop",
-    tagline: "Sve fotografije i snimci sa vaše proslave — na jednom mestu.",
-    headline: ["Svaki kadar", "sa proslave."],
+    tagline: "Sve fotografije i snimci sa vašeg događaja — na jednom mestu.",
+    headline: ["Svaki kadar", "sa vašeg događaja."],
     kicker: "Jedan QR kod. Sve uspomene.",
     footerLine: "Venčanja · Krštenja · Rođendani · Žurke · Korporativni događaji",
     description:
@@ -204,6 +204,13 @@ export const sr = {
     deleteFailed: "Brisanje nije uspelo. Pokušajte ponovo.",
     deleted: (n: number) => (n === 1 ? "Obrisano" : `Obrisano: ${n}`),
     zipReady: "ZIP je spreman ✓",
+    saved: "Sačuvano ✓",
+    preparing: (done: number, total: number) => `Pripremam ${done}/${total}…`,
+    shareHint: "Otvoriće se deljenje — izaberi „Sačuvaj sliku“ da ode u galeriju telefona.",
+    tooManyMobile: (n: number) =>
+      `Na telefonu možeš da sačuvaš do ${n} slika odjednom. Izaberi manje, ili preuzmi ceo album na računaru.`,
+    guidedSaveHint: "Dodirni sliku pa „Sačuvaj“ — jednu po jednu.",
+    saveFailed: "Čuvanje nije uspelo. Pokušaj ponovo.",
     close: "Zatvori",
     downloadAll: (n: number) => `Preuzmi sve (${n})`,
     select: "Izaberi",

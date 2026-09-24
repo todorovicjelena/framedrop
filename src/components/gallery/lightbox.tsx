@@ -14,6 +14,7 @@ export function Lightbox({
   onIndexChange,
   onClose,
   onDelete,
+  onSave,
   subtitle,
 }: {
   items: GalleryItem[];
@@ -21,6 +22,7 @@ export function Lightbox({
   onIndexChange: (index: number) => void;
   onClose: () => void;
   onDelete?: (id: string) => void;
+  onSave?: (item: GalleryItem) => void;
   subtitle: (item: GalleryItem) => string;
 }) {
   const item = items[index];
@@ -70,9 +72,15 @@ export function Lightbox({
           <p className="text-sm opacity-70">{subtitle(item)}</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          <a href={item.downloadUrl} className={button} aria-label={t.gallery.download} title={t.gallery.download}>
-            <Download className="size-5" aria-hidden />
-          </a>
+          {onSave ? (
+            <button type="button" onClick={() => onSave(item)} className={button} aria-label={t.gallery.download} title={t.gallery.download}>
+              <Download className="size-5" aria-hidden />
+            </button>
+          ) : (
+            <a href={item.downloadUrl} className={button} aria-label={t.gallery.download} title={t.gallery.download}>
+              <Download className="size-5" aria-hidden />
+            </a>
+          )}
           {item.canDelete && onDelete && (
             <button type="button" onClick={() => onDelete(item.id)} className={button} aria-label={t.gallery.delete} title={t.gallery.delete}>
               <Trash2 className="size-5" aria-hidden />
