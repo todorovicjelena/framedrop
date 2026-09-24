@@ -50,11 +50,33 @@ export async function downloadAsZip(
     return "saved";
   }
 
-  const blobUrl = URL.createObjectURL(await zip.blob());
+  const blob = await zip.blob();
+
+  // Prefer the Web Share API on platforms like iOS so the user can Save to Files
+  // (Share sheet) — this is more reliable than a programmatic download on iPhone.
+  try {
+    const file = new File([blob], zipName, { type: "application/zip" });
+    // @ts-expect-error navigator.canShare is an optional modern API
+    if ((navigator as any).canShare?.({ files: [file] })) {
+      // @ts-expect-error navigator.share may accept files on supporting platforms
+      await (navigator as any).share({ files: [file], title: zipName });
+      return "saved";
+    }
+  } catch (e) {
+    // If sharing fails or is unsupported, fall back to the blob download below.
+    // Keep console message for debugging; don't fail the whole flow.
+    // eslint-disable-next-line no-console
+    console.warn("Web Share API failed or not available — falling back to download", e);
+  }
+
+  const blobUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = blobUrl;
   a.download = zipName;
+  // append/remove helps some browsers honor the click
+  document.body.appendChild(a);
   a.click();
+  a.remove();
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   return "saved";
 }
