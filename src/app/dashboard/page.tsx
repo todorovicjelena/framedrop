@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireUser, displayName } from "@/lib/auth";
 import { EventCard } from "@/components/events/event-card";
+import { PageTransition } from "@/components/page-transition";
 import { DancingFlowers } from "@/components/dancing-flowers";
 import { buttonVariants } from "@/components/ui/button";
 import type { EventRow } from "@/lib/events";
@@ -30,6 +31,7 @@ export default async function DashboardPage() {
   );
 
   return (
+    <PageTransition>
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -54,5 +56,6 @@ export default async function DashboardPage() {
         </div>
       )}
     </main>
+    </PageTransition>
   );
 }

@@ -5,6 +5,7 @@ import { mediaFileName, signMedia } from "@/lib/media";
 import { slugify } from "@/lib/events";
 import type { FileKind } from "@/lib/uploads";
 import { GalleryGrid, type GalleryItem } from "@/components/gallery/gallery-grid";
+import { PageTransition } from "@/components/page-transition";
 import { deleteUpload } from "./actions";
 import { DancingFlowers } from "@/components/dancing-flowers";
 import { cn } from "@/lib/utils";
@@ -65,6 +66,7 @@ export default async function GalleryPage({ params, searchParams }: PageProps<"/
   );
 
   return (
+    <PageTransition>
     <main className="flex w-full flex-col gap-5">
       <nav className="flex flex-wrap gap-2" aria-label={t.gallery.title}>
         {FILTERS.map((f) => (
@@ -95,5 +97,6 @@ export default async function GalleryPage({ params, searchParams }: PageProps<"/
         </div>
       )}
     </main>
+    </PageTransition>
   );
 }

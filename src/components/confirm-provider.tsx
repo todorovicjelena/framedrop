@@ -22,32 +22,46 @@ type ConfirmOptions = {
 
 type Confirm = (options: ConfirmOptions) => Promise<boolean>;
 
+// Slightly longer than the dialog's exit animation (see ui/alert-dialog.tsx).
+const EXIT_MS = 220;
+
 const ConfirmContext = createContext<Confirm | null>(null);
 
 // App-styled replacement for window.confirm():
 //   const confirm = useConfirm();
 //   if (await confirm({ title: "Obrisati?" })) { … }
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  // `open` drives the animation; `options` outlives it so the dialog still has
+  // its text while it fades out, instead of emptying mid-animation.
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
+  const [open, setOpen] = useState(false);
   const resolver = useRef<(value: boolean) => void>(null);
 
   const confirm = useCallback<Confirm>((opts) => {
     setOptions(opts);
+    setOpen(true);
     return new Promise((resolve) => {
       resolver.current = resolve;
     });
   }, []);
 
+  // Resolve only once the dialog has actually gone. Otherwise whatever the
+  // caller does next — e.g. a tile fading out — plays behind the backdrop that
+  // is still on screen, and looks like it never animated at all.
   function close(result: boolean) {
-    resolver.current?.(result);
+    const resolve = resolver.current;
     resolver.current = null;
-    setOptions(null);
+    setOpen(false);
+    setTimeout(() => {
+      setOptions(null);
+      resolve?.(result);
+    }, EXIT_MS);
   }
 
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      <AlertDialog open={options !== null} onOpenChange={(open) => !open && close(false)}>
+      <AlertDialog open={open} onOpenChange={(next) => !next && close(false)}>
         <AlertDialogContent className="rounded-[1.75rem] p-6">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-serif text-2xl">{options?.title}</AlertDialogTitle>

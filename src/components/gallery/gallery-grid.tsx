@@ -32,6 +32,9 @@ export type GalleryItem = {
   canDelete?: boolean;
 };
 
+// How long a tile's shrink-and-fade runs before it's removed from the list.
+const EXIT_MS = 260;
+
 const timeFormat = new Intl.DateTimeFormat("sr-Latn-RS", {
   day: "numeric",
   month: "short",
@@ -68,16 +71,28 @@ export function GalleryGrid({
   // A short status label while a ZIP is built or files are prepared for sharing.
   const [saveProgress, setSaveProgress] = useState<string | null>(null);
   const busy = saveProgress !== null;
+  // Tiles on their way out: they shrink and fade before leaving the list.
+  const [removing, setRemoving] = useState<Set<string>>(new Set());
 
   function deleteMany(ids: string[]) {
     if (!onDelete || ids.length === 0) return;
-    startTransition(async () => {
-      removeOptimistic(ids);
-      const results = await Promise.all(ids.map((id) => onDelete(id)));
-      const failed = results.find((r) => !r.ok);
-      if (failed && !failed.ok) toast.error(failed.error);
-      else toast.success(t.gallery.deleted(ids.length));
-    });
+    setRemoving((prev) => new Set([...prev, ...ids]));
+    // Let the exit animation play, then actually drop them.
+    setTimeout(() => {
+      startTransition(async () => {
+        removeOptimistic(ids);
+        const results = await Promise.all(ids.map((id) => onDelete(id)));
+        const failed = results.find((r) => !r.ok);
+        if (failed && !failed.ok) toast.error(failed.error);
+        else toast.success(t.gallery.deleted(ids.length));
+        // Clear the flag so a failed delete doesn't leave the tile faded out.
+        setRemoving((prev) => {
+          const next = new Set(prev);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+      });
+    }, EXIT_MS);
   }
 
   async function removeOne(id: string) {
@@ -92,6 +107,11 @@ export function GalleryGrid({
   }
 
   const toRef = (it: GalleryItem): MediaRef => ({ url: it.url, name: it.fileName });
+
+  // The toolbar swaps whole sets of buttons when select mode toggles, so each
+  // one pops in rather than appearing out of nowhere.
+  const appear = "animate-in fade-in zoom-in-95 duration-200";
+  const pop = (i: number) => ({ animationDelay: `${i * 45}ms`, animationFillMode: "backwards" as const });
 
   // Open the viewer on the first item of a list so the guest can save them one by
   // one (the phone fallback when we can't share a whole batch at once).
@@ -182,29 +202,30 @@ export function GalleryGrid({
         )}
         {!selecting ? (
           <>
-            <Button type="button" disabled={busy} onClick={() => save(visible)}>
+            <Button type="button" disabled={busy} onClick={() => save(visible)} className={appear} style={pop(0)}>
               <Download aria-hidden />
               {t.gallery.downloadAll(visible.length)}
             </Button>
-            <Button type="button" variant="outline" className="text-foreground" onClick={() => setSelecting(true)}>
+            <Button type="button" variant="outline" className={cn("text-foreground", appear)} style={pop(1)} onClick={() => setSelecting(true)}>
               <CheckSquare aria-hidden />
               {t.gallery.select}
             </Button>
           </>
         ) : (
           <>
-            <span className="rounded-full bg-card px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm">
+            <span className={cn("rounded-full bg-card px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm", appear)} style={pop(0)}>
               {t.gallery.selected(selected.size)}
             </span>
             <Button
               type="button"
               variant="outline"
-              className="text-foreground"
+              className={cn("text-foreground", appear)}
+              style={pop(1)}
               onClick={() => setSelected(new Set(visible.map((it) => it.id)))}
             >
               {t.gallery.selectAll}
             </Button>
-            <Button type="button" disabled={selected.size === 0 || busy} onClick={() => save(selectedItems)}>
+            <Button type="button" disabled={selected.size === 0 || busy} onClick={() => save(selectedItems)} className={appear} style={pop(2)}>
               <Download aria-hidden />
               {t.gallery.downloadSelected(selected.size)}
             </Button>
@@ -212,7 +233,8 @@ export function GalleryGrid({
               <Button
                 type="button"
                 variant="destructive"
-                className="bg-card"
+                className={cn("bg-card", appear)}
+                style={pop(3)}
                 onClick={async () => {
                   const ok = await confirm({
                     title: t.gallery.confirmDeleteMany(deletableSelected.length),
@@ -229,7 +251,7 @@ export function GalleryGrid({
                 {t.gallery.deleteSelected(deletableSelected.length)}
               </Button>
             )}
-            <Button type="button" variant="outline" className="text-foreground" onClick={stopSelecting}>
+            <Button type="button" variant="outline" className={cn("text-foreground", appear)} style={pop(4)} onClick={stopSelecting}>
               <X aria-hidden />
               {t.gallery.cancelSelect}
             </Button>
@@ -243,9 +265,13 @@ export function GalleryGrid({
           return (
             <li
               key={item.id}
+              // Tiles fade in one after another; a deleted one shrinks away first.
+              style={{ animationDelay: `${Math.min(index, 11) * 40}ms`, animationFillMode: "backwards" }}
               className={cn(
-                "group relative aspect-square overflow-hidden rounded-2xl bg-lilac-soft shadow-sm transition",
+                "group relative aspect-square animate-in overflow-hidden rounded-2xl bg-lilac-soft shadow-sm",
+                "transition duration-300 fade-in zoom-in-95",
                 isSelected && "ring-4 ring-primary",
+                removing.has(item.id) && "scale-75 opacity-0",
               )}
             >
               <button
@@ -253,7 +279,7 @@ export function GalleryGrid({
                 onClick={() => (selecting ? toggle(item.id) : setOpenIndex(index))}
                 aria-label={t.gallery.from(item.guestName)}
                 aria-pressed={selecting ? isSelected : undefined}
-                className={cn("block size-full", selecting ? "cursor-pointer" : "cursor-zoom-in")}
+                className={cn("block size-full transition duration-150 active:scale-[0.97]", selecting ? "cursor-pointer" : "cursor-zoom-in")}
               >
                 {item.kind === "image" ? (
                   <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />
@@ -290,7 +316,7 @@ export function GalleryGrid({
                       onClick={() => saveOne(item)}
                       aria-label={t.gallery.download}
                       title={t.gallery.download}
-                      className="grid size-8 place-items-center rounded-full bg-cream/90 text-ink hover:bg-white"
+                      className="grid size-8 place-items-center rounded-full bg-cream/90 text-ink transition hover:bg-white active:scale-90"
                     >
                       <Download className="size-4" aria-hidden />
                     </button>
@@ -300,7 +326,7 @@ export function GalleryGrid({
                         onClick={() => removeOne(item.id)}
                         aria-label={t.gallery.delete}
                         title={t.gallery.delete}
-                        className="grid size-8 place-items-center rounded-full bg-cream/90 text-destructive hover:bg-white"
+                        className="grid size-8 place-items-center rounded-full bg-cream/90 text-destructive transition hover:bg-white active:scale-90"
                       >
                         <Trash2 className="size-4" aria-hidden />
                       </button>

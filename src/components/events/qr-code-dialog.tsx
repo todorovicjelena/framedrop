@@ -7,7 +7,8 @@ import { Download, Loader2, Printer, QrCode, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { triggerDownload } from "@/lib/download";
-import { useModal } from "@/hooks/use-modal";
+import { useClosing, useModal } from "@/hooks/use-modal";
+import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
 const q = t.qr;
@@ -235,8 +236,10 @@ export function QrCodeDialog({
     return () => clearTimeout(id);
   }, [open, render]);
 
-  // Esc and the page scroll lock are shared with the other overlays.
-  useModal(open, () => setOpen(false));
+  // Esc and the page scroll lock are shared with the other overlays; `close`
+  // lets the dialog animate out before it unmounts.
+  const { closing, close } = useClosing(() => setOpen(false));
+  useModal(open, close);
 
   async function downloadPlainQr() {
     const dataUrl = await QRCode.toDataURL(url, { width: 1024, margin: 2, color: { dark: INK, light: "#ffffff" } });
@@ -255,12 +258,22 @@ export function QrCodeDialog({
           role="dialog"
           aria-modal="true"
           aria-label={q.title}
-          className="fixed inset-0 z-50 grid place-items-center bg-ink/60 p-4 backdrop-blur-sm"
+          className={cn(
+            "fixed inset-0 z-50 grid place-items-center bg-ink/60 p-4 backdrop-blur-sm duration-200",
+            closing ? "animate-out fade-out fill-mode-forwards" : "animate-in fade-in",
+          )}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
+            if (e.target === e.currentTarget) close();
           }}
         >
-          <div className="flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-auto rounded-[1.75rem] bg-cream p-5 text-ink shadow-xl">
+          <div
+            className={cn(
+              "flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-auto rounded-[1.75rem] bg-cream p-5 text-ink shadow-xl",
+              closing
+                ? "animate-out duration-200 fade-out slide-out-to-bottom-4 zoom-out-95 fill-mode-forwards"
+                : "animate-in duration-300 fade-in slide-in-from-bottom-4 zoom-in-95",
+            )}
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-serif text-2xl leading-tight">{q.title}</h2>
@@ -268,7 +281,7 @@ export function QrCodeDialog({
               </div>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={close}
                 aria-label={q.close}
                 className="grid size-9 shrink-0 place-items-center rounded-full bg-card text-ink hover:bg-white"
               >
