@@ -6,6 +6,8 @@ import QRCode from "qrcode";
 import { Download, Loader2, Printer, QrCode, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { triggerDownload } from "@/lib/download";
+import { useModal } from "@/hooks/use-modal";
 import { t } from "@/lib/i18n";
 
 const q = t.qr;
@@ -185,15 +187,6 @@ async function buildCard(url: string, title: string, pin: string): Promise<strin
   return canvas.toDataURL("image/png");
 }
 
-function download(dataUrl: string, filename: string) {
-  const a = document.createElement("a");
-  a.href = dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
 // Prints an image on its own page via a hidden iframe (no popup, prints only the card).
 function printImage(dataUrl: string) {
   const iframe = document.createElement("iframe");
@@ -242,24 +235,12 @@ export function QrCodeDialog({
     return () => clearTimeout(id);
   }, [open, render]);
 
-  // Esc to close + lock page scroll while open.
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("keydown", onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-    };
-  }, [open]);
+  // Esc and the page scroll lock are shared with the other overlays.
+  useModal(open, () => setOpen(false));
 
   async function downloadPlainQr() {
-    const dataUrl = await QRCode.toDataURL(url, { width: 1024, margin: 2, color: { dark: "#1d1b24", light: "#ffffff" } });
-    download(dataUrl, `qr-${fileBase}.png`);
+    const dataUrl = await QRCode.toDataURL(url, { width: 1024, margin: 2, color: { dark: INK, light: "#ffffff" } });
+    triggerDownload(dataUrl, `qr-${fileBase}.png`);
   }
 
   return (
@@ -319,7 +300,7 @@ export function QrCodeDialog({
             )}
 
             <div className="flex flex-wrap gap-2">
-              <Button type="button" disabled={!cardUrl} onClick={() => cardUrl && download(cardUrl, `qr-kartica-${fileBase}.png`)}>
+              <Button type="button" disabled={!cardUrl} onClick={() => cardUrl && triggerDownload(cardUrl, `qr-kartica-${fileBase}.png`)}>
                 <Download aria-hidden />
                 {q.downloadCard}
               </Button>

@@ -4,6 +4,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Download, Trash2, X } from "lucide-react";
 import type { GalleryItem } from "./gallery-grid";
+import { useModal } from "@/hooks/use-modal";
 import { t } from "@/lib/i18n";
 
 // Full-screen viewer: photos and videos play in the page instead of opening
@@ -30,21 +31,18 @@ export function Lightbox({
   const hasPrev = index > 0;
   const hasNext = index < items.length - 1;
 
-  // Keyboard: ← → to browse, Esc to close. Lock page scroll while open.
+  // Esc and the page scroll lock are shared with the other overlays.
+  useModal(true, onClose);
+
+  // ← → to browse, which is specific to the viewer.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
       if (e.key === "ArrowLeft" && hasPrev) onIndexChange(index - 1);
       if (e.key === "ArrowRight" && hasNext) onIndexChange(index + 1);
     }
     window.addEventListener("keydown", onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-    };
-  }, [index, hasPrev, hasNext, onClose, onIndexChange]);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [index, hasPrev, hasNext, onIndexChange]);
 
   if (!item) return null;
 
