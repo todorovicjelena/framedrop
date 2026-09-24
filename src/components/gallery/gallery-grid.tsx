@@ -33,7 +33,7 @@ export type GalleryItem = {
 };
 
 // How long a tile's shrink-and-fade runs before it's removed from the list.
-const EXIT_MS = 180;
+const EXIT_MS = 260;
 
 const timeFormat = new Intl.DateTimeFormat("sr-Latn-RS", {
   day: "numeric",
@@ -269,9 +269,9 @@ export function GalleryGrid({
               style={{ animationDelay: `${Math.min(index, 11) * 40}ms`, animationFillMode: "backwards" }}
               className={cn(
                 "group relative aspect-square animate-in overflow-hidden rounded-2xl bg-lilac-soft shadow-sm",
-                "transition duration-200 fade-in zoom-in-95",
+                "transition duration-300 fade-in zoom-in-95",
                 isSelected && "ring-4 ring-primary",
-                removing.has(item.id) && "scale-90 opacity-0",
+                removing.has(item.id) && "scale-75 opacity-0",
               )}
             >
               <button
