@@ -56,9 +56,8 @@ export async function downloadAsZip(
   // (Share sheet) — this is more reliable than a programmatic download on iPhone.
   try {
     const file = new File([blob], zipName, { type: "application/zip" });
-    // @ts-expect-error navigator.canShare is an optional modern API
+    // @ts-ignore
     if ((navigator as any).canShare?.({ files: [file] })) {
-      // @ts-expect-error navigator.share may accept files on supporting platforms
       await (navigator as any).share({ files: [file], title: zipName });
       return "saved";
     }
