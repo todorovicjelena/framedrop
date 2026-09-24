@@ -143,7 +143,7 @@ function Uploader({
 
 function GalleryLink({ href }: { href: string }) {
   return (
-    <Link href={href} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full border-2")}>
+    <Link href={href} transitionTypes={["nav-forward"]} className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full border-2")}>
       <Images aria-hidden />
       {g.viewGallery}
     </Link>

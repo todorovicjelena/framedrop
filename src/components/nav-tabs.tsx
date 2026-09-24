@@ -28,7 +28,7 @@ export function NavTabs({ tabs, className }: { tabs: NavTab[]; className?: strin
                 target={external ? "_blank" : undefined}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-10 items-center gap-2 rounded-full border-2 px-4 text-sm font-semibold whitespace-nowrap transition-colors [&_svg]:size-4",
+                  "inline-flex h-10 items-center gap-2 rounded-full border-2 px-4 text-sm font-semibold whitespace-nowrap transition duration-150 active:scale-95 [&_svg]:size-4",
                   active ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card text-foreground hover:border-lilac",
                 )}
               >

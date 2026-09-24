@@ -279,7 +279,7 @@ export function GalleryGrid({
                 onClick={() => (selecting ? toggle(item.id) : setOpenIndex(index))}
                 aria-label={t.gallery.from(item.guestName)}
                 aria-pressed={selecting ? isSelected : undefined}
-                className={cn("block size-full", selecting ? "cursor-pointer" : "cursor-zoom-in")}
+                className={cn("block size-full transition duration-150 active:scale-[0.97]", selecting ? "cursor-pointer" : "cursor-zoom-in")}
               >
                 {item.kind === "image" ? (
                   <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />
