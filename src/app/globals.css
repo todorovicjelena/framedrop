@@ -195,6 +195,14 @@
     var(--duration-move) ease-in-out both vt-slide;
 }
 
+/* Peer navigations (tabs, back button) crossfade instead of sliding. */
+::view-transition-old(.page-fade) {
+  animation: var(--duration-exit) ease-out both vt-fade reverse;
+}
+::view-transition-new(.page-fade) {
+  animation: var(--duration-enter) ease-in var(--duration-exit) both vt-fade;
+}
+
 /* The header is the user's fixed anchor: it must not slide with the content. */
 ::view-transition-group(site-header) {
   animation: none;
