@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Images, Settings } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { formatEventDate, monogram, type EventRow } from "@/lib/events";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
@@ -26,7 +27,11 @@ export function EventCard({ event }: { event: EventRow }) {
         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           {t.eventTypeLabels[event.event_type]}
         </p>
-        <h2 className="truncate font-heading text-xl font-bold sm:text-2xl">{event.title}</h2>
+        <h2 className="truncate font-heading text-xl font-bold sm:text-2xl">
+          <Link href={`/dashboard/events/${event.id}`} className="hover:underline">
+            {event.title}
+          </Link>
+        </h2>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           {date && (
             <span className="inline-flex items-center gap-1">
@@ -49,6 +54,25 @@ export function EventCard({ event }: { event: EventRow }) {
           className="mt-2 inline-block truncate text-sm font-semibold underline decoration-lilac decoration-2 underline-offset-4"
         >
           /event/{event.slug}
+        </Link>
+      </div>
+
+      <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+        <Link
+          href={`/dashboard/events/${event.id}/gallery`}
+          aria-label={t.gallery.open}
+          className={cn(buttonVariants({ size: "icon-lg" }), "sm:w-auto sm:px-4")}
+        >
+          <Images aria-hidden />
+          <span className="hidden sm:inline">{t.gallery.open}</span>
+        </Link>
+        <Link
+          href={`/dashboard/events/${event.id}`}
+          aria-label={t.settings.open}
+          className={cn(buttonVariants({ variant: "outline", size: "icon-lg" }), "sm:w-auto sm:px-4")}
+        >
+          <Settings aria-hidden />
+          <span className="hidden sm:inline">{t.settings.open}</span>
         </Link>
       </div>
     </article>

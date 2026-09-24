@@ -2,22 +2,17 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { Cake, Church, Gem, PartyPopper } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormError, FormField } from "@/components/form-field";
+import { EventTypePicker } from "@/components/events/event-type-picker";
 import { createEvent, type CreateEventState } from "@/app/dashboard/actions";
 import { useSlugFromTitle } from "@/hooks/use-slug-from-title";
-import { EVENT_TYPES, type EventType } from "@/lib/events";
+import { useSlugAvailability } from "@/hooks/use-slug-availability";
+import type { EventType } from "@/lib/events";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
-
-const TYPE_ICONS: Record<EventType, typeof Gem> = {
-  wedding: Gem,
-  christening: Church,
-  birthday: Cake,
-  other: PartyPopper,
-};
 
 // linkPrefix: what guests' links start with, e.g. "framedrop.rs/event/"
 export function EventForm({ linkPrefix }: { linkPrefix: string }) {
@@ -25,39 +20,14 @@ export function EventForm({ linkPrefix }: { linkPrefix: string }) {
   const [type, setType] = useState<EventType>("wedding");
   const [date, setDate] = useState("");
   const { title, setTitle, slug, setSlug } = useSlugFromTitle();
+  const availability = useSlugAvailability(slug);
+  // Server-side check on submit can also suggest a free link (race with another host).
+  const suggestion =
+    availability.status === "taken" ? availability.suggestion : state?.field === "slug" ? state.suggestion : undefined;
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 pl-1 text-sm font-semibold">{t.newEvent.type}</legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {EVENT_TYPES.map((value) => {
-            const Icon = TYPE_ICONS[value];
-            const active = type === value;
-            return (
-              <label
-                key={value}
-                className={cn(
-                  "flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 px-3 py-4 text-sm font-semibold transition-colors",
-                  "has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-                  active ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card hover:border-lilac",
-                )}
-              >
-                <input
-                  type="radio"
-                  name="event_type"
-                  value={value}
-                  checked={active}
-                  onChange={() => setType(value)}
-                  className="sr-only"
-                />
-                <Icon className="size-6" aria-hidden />
-                {t.eventTypeLabels[value]}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
+      <EventTypePicker value={type} onChange={setType} />
 
       <FormField id="title" label={t.newEvent.eventTitle}>
         <Input
@@ -76,11 +46,12 @@ export function EventForm({ linkPrefix }: { linkPrefix: string }) {
         <Input id="event_date" name="event_date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </FormField>
 
-      <FormField id="slug" label={t.newEvent.slug} hint={t.newEvent.slugHint}>
+      <FormField id="slug" label={t.newEvent.slug}>
         <div
           className={cn(
             "flex h-12 items-center overflow-hidden rounded-2xl border-2 border-input bg-card focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
-            state?.field === "slug" && "border-destructive",
+            (availability.status === "taken" || state?.field === "slug") && "border-destructive",
+            availability.status === "free" && "border-[#3f8f6a]",
           )}
         >
           <span className="shrink-0 pl-4 text-sm text-muted-foreground">{linkPrefix}</span>
@@ -96,6 +67,7 @@ export function EventForm({ linkPrefix }: { linkPrefix: string }) {
             className="h-full min-w-0 flex-1 bg-transparent pr-4 text-base font-semibold outline-none md:text-sm"
           />
         </div>
+        <SlugStatus status={availability.status} suggestion={suggestion} onUse={setSlug} />
       </FormField>
 
       <FormError message={state?.error} />
@@ -110,4 +82,43 @@ export function EventForm({ linkPrefix }: { linkPrefix: string }) {
       </div>
     </form>
   );
+}
+
+function SlugStatus({
+  status,
+  suggestion,
+  onUse,
+}: {
+  status: "idle" | "checking" | "free" | "taken" | "invalid";
+  suggestion?: string;
+  onUse: (slug: string) => void;
+}) {
+  if (suggestion) {
+    return (
+      <button
+        type="button"
+        onClick={() => onUse(suggestion)}
+        className="self-start pl-1 text-left text-xs font-semibold text-destructive underline underline-offset-2"
+      >
+        {t.newEvent.slugTakenUse(suggestion)}
+      </button>
+    );
+  }
+  if (status === "checking") {
+    return (
+      <p className="inline-flex items-center gap-1 pl-1 text-xs text-muted-foreground">
+        <Loader2 className="size-3 animate-spin" aria-hidden />
+        {t.newEvent.slugChecking}
+      </p>
+    );
+  }
+  if (status === "free") {
+    return (
+      <p className="inline-flex items-center gap-1 pl-1 text-xs font-semibold text-[#3f8f6a]">
+        <Check className="size-3" aria-hidden />
+        {t.newEvent.slugFree}
+      </p>
+    );
+  }
+  return <p className="pl-1 text-xs text-muted-foreground">{t.newEvent.slugHint}</p>;
 }

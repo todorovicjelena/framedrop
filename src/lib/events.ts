@@ -45,3 +45,73 @@ export function formatEventDate(date: string | null) {
     new Date(y, m - 1, d),
   );
 }
+
+// Full event row as the owner sees it on the settings page.
+export type EventSettings = EventRow & {
+  welcome_message: string | null;
+  logo_key: string | null;
+  cover_key: string | null;
+  primary_color: string;
+  upload_deadline: string | null;
+  pin_hash: string | null;
+  guests_can_view: boolean;
+};
+
+export const BRAND_COLORS = ["#ff6a33", "#e2476b", "#9b7bd6", "#4d6bff", "#3f8f6a", "#1d1b24"] as const;
+export const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
+// Logo & cover uploads (host only). Images are compressed in the browser first.
+export const BRANDING = {
+  kinds: ["logo", "cover"] as const,
+  mimeTypes: ["image/jpeg", "image/png", "image/webp"] as const,
+  maxBytes: 5 * 1024 * 1024,
+  maxDimension: { logo: 600, cover: 2000 },
+};
+export type BrandingKind = (typeof BRANDING.kinds)[number];
+
+export function brandingKeyPrefix(eventId: string) {
+  return `events/${eventId}/branding/`;
+}
+
+// Events happen in Serbia, so <input type="datetime-local"> values are
+// Belgrade wall-clock time. These convert to/from ISO (UTC) for the database
+// and give the same result on the server and in the browser.
+export const EVENT_TIMEZONE = "Europe/Belgrade";
+const LOCAL_INPUT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+function zonedParts(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)!.value;
+  return { y: get("year"), m: get("month"), d: get("day"), h: get("hour"), min: get("minute") };
+}
+
+export function isoToLocalInput(iso: string | null, timeZone = EVENT_TIMEZONE) {
+  if (!iso) return "";
+  const { y, m, d, h, min } = zonedParts(new Date(iso), timeZone);
+  return `${y}-${m}-${d}T${h}:${min}`;
+}
+
+export function localInputToIso(local: string, timeZone = EVENT_TIMEZONE) {
+  if (!LOCAL_INPUT.test(local)) return null;
+  const [date, time] = local.split("T");
+  const [y, m, d] = date.split("-").map(Number);
+  const [h, min] = time.split(":").map(Number);
+  const asUtc = Date.UTC(y, m - 1, d, h, min);
+  // How far the zone is from UTC at that moment (handles summer time).
+  const p = zonedParts(new Date(asUtc), timeZone);
+  const offset = Date.UTC(+p.y, +p.m - 1, +p.d, +p.h, +p.min) - asUtc;
+  return new Date(asUtc - offset).toISOString();
+}
+
+// Uploads close when the host switches them off or the deadline has passed.
+export function isUploadClosed(event: { uploads_open: boolean; upload_deadline: string | null }, now = new Date()) {
+  return !event.uploads_open || (event.upload_deadline !== null && new Date(event.upload_deadline) < now);
+}
