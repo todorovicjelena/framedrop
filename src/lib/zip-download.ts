@@ -70,10 +70,58 @@ export async function downloadAsZip(
   }
 
   const blobUrl = URL.createObjectURL(blob);
+
+  // Create an anchor for download. For many desktop browsers this is auto-clicked
+  // and removed immediately. On mobile, leaving a visible link helps users tap
+  // / long-press and Save to Files or Share to Drive if the automatic flows fail.
   const a = document.createElement("a");
   a.href = blobUrl;
   a.download = zipName;
-  // append/remove helps some browsers honor the click
+
+  const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    // Visible floating banner with a link and brief instructions.
+    const banner = document.createElement("div");
+    banner.setAttribute(
+      "style",
+      "position:fixed;left:10px;right:10px;bottom:12px;z-index:99999;padding:10px 14px;border-radius:10px;background:rgba(0,0,0,0.8);color:#fff;display:flex;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 6px 18px rgba(0,0,0,0.3);",
+    );
+
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.textContent = `Open ${zipName}`;
+    link.target = "_blank";
+    link.setAttribute("style", "color:#fff;font-weight:600;text-decoration:underline;flex:1;margin-right:12px;");
+
+    const hint = document.createElement("span");
+    hint.textContent = "Tap and hold to save (Files/Share)";
+    hint.setAttribute("style", "font-size:12px;opacity:0.9;white-space:nowrap;margin-left:8px;");
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "✕";
+    closeBtn.setAttribute("style", "background:transparent;border:none;color:#fff;margin-left:12px;font-size:16px;cursor:pointer;");
+    closeBtn.onclick = () => {
+      banner.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
+    };
+
+    banner.appendChild(link);
+    banner.appendChild(hint);
+    banner.appendChild(closeBtn);
+    document.body.appendChild(banner);
+
+    // Auto-remove after 60s to avoid lingering UI
+    setTimeout(() => banner.remove(), 60_000);
+
+    // Also try a programmatic click as a best-effort to trigger download UI.
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return "saved";
+  }
+
+  // Non-mobile fallback: click an invisible anchor and remove it.
   document.body.appendChild(a);
   a.click();
   a.remove();
