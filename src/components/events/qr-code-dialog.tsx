@@ -46,74 +46,139 @@ function drawWrapped(ctx: CanvasRenderingContext2D, text: string, cx: number, y:
   return y + shown.length * lineHeight;
 }
 
+// A centered rounded "pill" with a label inside. Returns its height.
+function pill(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+  opts: { font: string; textColor: string; bg: string; padX?: number; h?: number },
+) {
+  const { font, textColor, bg, padX = 42, h = 72 } = opts;
+  ctx.font = font;
+  const w = ctx.measureText(text).width + padX * 2;
+  roundRect(ctx, cx - w / 2, cy - h / 2, w, h, h / 2);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.fillStyle = textColor;
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, cx, cy + 2);
+  ctx.textBaseline = "alphabetic";
+  return h;
+}
+
 async function buildCard(url: string, title: string, pin: string): Promise<string> {
   const W = 1080;
   const H = 1500;
+  const cardX = 56;
+  const cardY = 56;
+  const cardW = W - cardX * 2;
+  const cardH = H - cardY * 2;
+  const cx = W / 2;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d context");
 
-  // Cream page with a white card inside and a blaze accent stripe on top.
-  ctx.fillStyle = "#fbf6ee";
+  // Warm cream → lilac page behind the card.
+  const page = ctx.createLinearGradient(0, 0, 0, H);
+  page.addColorStop(0, "#fbf6ee");
+  page.addColorStop(1, "#f0e7ff");
+  ctx.fillStyle = page;
   ctx.fillRect(0, 0, W, H);
-  roundRect(ctx, 56, 56, W - 112, H - 112, 56);
+
+  // White card with a soft shadow.
+  ctx.save();
+  ctx.shadowColor = "rgba(60,40,90,0.18)";
+  ctx.shadowBlur = 60;
+  ctx.shadowOffsetY = 24;
+  roundRect(ctx, cardX, cardY, cardW, cardH, 60);
   ctx.fillStyle = "#ffffff";
   ctx.fill();
-  roundRect(ctx, 56, 56, W - 112, 120, 56);
-  ctx.fillStyle = "#f45a1f";
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(56, 130, W - 112, 46);
+  ctx.restore();
+
+  // Sunset banner (blaze → lilac), clipped to the card's rounded top.
+  const bannerH = 220;
+  ctx.save();
+  roundRect(ctx, cardX, cardY, cardW, cardH, 60);
+  ctx.clip();
+  const banner = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + bannerH);
+  banner.addColorStop(0, "#ff6a33");
+  banner.addColorStop(0.55, "#f45a1f");
+  banner.addColorStop(1, "#b98cff");
+  ctx.fillStyle = banner;
+  ctx.fillRect(cardX, cardY, cardW, bannerH);
+  ctx.restore();
 
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
 
-  // Title.
-  ctx.fillStyle = "#1d1b24";
-  ctx.font = "bold 66px Georgia, 'Times New Roman', serif";
-  const afterTitle = drawWrapped(ctx, title, W / 2, 290, W - 240, 78);
+  // Kicker on the banner (letter-spaced).
+  const ls = ctx as CanvasRenderingContext2D & { letterSpacing: string };
+  const prevLs = ls.letterSpacing ?? "0px";
+  ls.letterSpacing = "8px";
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.font = "bold 30px system-ui, -apple-system, sans-serif";
+  ctx.fillText(q.kicker, cx + 4, cardY + 128);
+  ls.letterSpacing = prevLs;
 
-  // Instruction.
-  ctx.fillStyle = "#6b6574";
-  ctx.font = "500 34px system-ui, -apple-system, sans-serif";
-  const instrY = Math.max(afterTitle + 6, 360);
-  ctx.fillText(q.instruction, W / 2, instrY);
+  // Event name.
+  ctx.fillStyle = "#1d1b24";
+  ctx.font = "bold 68px Georgia, 'Times New Roman', serif";
+  const afterTitle = drawWrapped(ctx, title, cx, cardY + 310, cardW - 140, 80);
+
+  // Warm invite line.
+  ctx.fillStyle = "#9b7bd6";
+  ctx.font = "italic 40px Georgia, 'Times New Roman', serif";
+  const headingY = afterTitle + 28;
+  ctx.fillText(q.cardHeading, cx, headingY);
 
   // QR in a soft lilac frame.
-  const qr = document.createElement("canvas");
-  await QRCode.toCanvas(qr, url, { width: 600, margin: 1, color: { dark: "#1d1b24", light: "#ffffff" } });
-  const qs = 600;
+  const qs = 500;
   const qx = (W - qs) / 2;
-  const qy = instrY + 60;
-  ctx.fillStyle = "#ede3ff";
-  roundRect(ctx, qx - 40, qy - 40, qs + 80, qs + 80, 40);
+  const qy = headingY + 56;
+  const qr = document.createElement("canvas");
+  await QRCode.toCanvas(qr, url, { width: qs, margin: 1, color: { dark: "#2a1f3d", light: "#ffffff" } });
+  ctx.fillStyle = "#f3ecff";
+  roundRect(ctx, qx - 44, qy - 44, qs + 88, qs + 88, 44);
   ctx.fill();
   ctx.fillStyle = "#ffffff";
-  roundRect(ctx, qx - 20, qy - 20, qs + 40, qs + 40, 28);
+  roundRect(ctx, qx - 22, qy - 22, qs + 44, qs + 44, 30);
   ctx.fill();
   ctx.drawImage(qr, qx, qy);
 
-  // Link text.
-  const shortUrl = url.replace(/^https?:\/\//, "");
-  ctx.fillStyle = "#1d1b24";
-  ctx.font = "600 32px system-ui, -apple-system, sans-serif";
-  let y = qy + qs + 110;
-  ctx.fillText(shortUrl, W / 2, y);
+  // Instruction under the QR.
+  ctx.fillStyle = "#6b6574";
+  ctx.font = "500 32px system-ui, -apple-system, sans-serif";
+  let y = qy + qs + 92;
+  ctx.fillText(q.instruction, cx, y);
 
-  // Optional PIN.
+  // Link pill.
+  y += 54;
+  pill(ctx, url.replace(/^https?:\/\//, ""), cx, y, {
+    font: "600 30px system-ui, -apple-system, sans-serif",
+    textColor: "#5a4a7a",
+    bg: "#f0e7ff",
+  });
+
+  // Optional PIN pill (blaze).
   if (pin) {
-    y += 78;
-    ctx.fillStyle = "#f45a1f";
-    ctx.font = "bold 46px system-ui, -apple-system, sans-serif";
-    ctx.fillText(`PIN: ${pin}`, W / 2, y);
+    y += 86;
+    pill(ctx, `PIN · ${pin}`, cx, y, {
+      font: "bold 36px system-ui, -apple-system, sans-serif",
+      textColor: "#ffffff",
+      bg: "#f45a1f",
+    });
   }
 
-  // Footer.
+  // Footer: brand + tagline, anchored to the bottom of the card.
+  ctx.fillStyle = "#1d1b24";
+  ctx.font = "bold 30px system-ui, -apple-system, sans-serif";
+  ctx.fillText(t.app.name, cx, H - 140);
   ctx.fillStyle = "#9a94a3";
   ctx.font = "500 26px system-ui, -apple-system, sans-serif";
-  ctx.fillText(t.app.name, W / 2, H - 120);
+  ctx.fillText(q.footer, cx, H - 100);
 
   return canvas.toDataURL("image/png");
 }
