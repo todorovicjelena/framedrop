@@ -84,6 +84,17 @@ export function GalleryGrid({
   async function zip(list: GalleryItem[]) {
     if (list.length === 0 || zipProgress) return;
     try {
+      const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const allImages = list.every((it) => it.kind === "image");
+      if (isMobile && allImages) {
+        // Inform mobile users that the native share sheet will open and how to save
+        // images to Photos/Files — this improves UX when we're sharing image files
+        // instead of a ZIP archive.
+        toast.info(
+          "Na telefonu će se otvoriti deljenje. Izaberi 'Save Images' ili 'Save to Files' da sačuvaš u Photos/Files.",
+        );
+      }
+
       const result = await downloadAsZip(
         list.map((it) => ({ url: it.url, name: it.fileName })),
         zipName,
