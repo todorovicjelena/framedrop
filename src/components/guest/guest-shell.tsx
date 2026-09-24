@@ -10,27 +10,34 @@ import { t } from "@/lib/i18n";
 export function GuestShell({
   event,
   className,
+  enter = "fade-in",
   children,
 }: {
   event: Pick<PublicEvent, "slug" | "primary_color" | "guests_can_view">;
   className?: string;
+  // How the content animates in. The swirl background stays put, so only the
+  // content moves — no flash of the page behind it. Pošalji slides in from the
+  // left, Galerija from the right, so switching tabs reads as left↔right.
+  enter?: string;
   children: React.ReactNode;
 }) {
   return (
     <>
       <HostBar slug={event.slug} />
       <main
-        className={cn("relative isolate flex flex-1 flex-col overflow-hidden px-4 pt-10 pb-10 text-cream", className)}
+        className="relative isolate flex flex-1 flex-col overflow-hidden px-4 pt-10 pb-10 text-cream"
         // The host's color replaces the orange accents on guest pages.
         style={{ "--color-blaze": event.primary_color, "--primary": event.primary_color } as React.CSSProperties}
       >
         <Swirls />
-        {event.guests_can_view && <GuestTabs slug={event.slug} />}
-        {children}
-        <p className="mt-auto pt-10 text-center font-serif text-xl">
-          {t.app.name}
-          <span className="text-blaze">.</span>
-        </p>
+        <div className={cn("flex flex-1 flex-col animate-in duration-300 ease-out", enter, className)}>
+          {event.guests_can_view && <GuestTabs slug={event.slug} />}
+          {children}
+          <p className="mt-auto pt-10 text-center font-serif text-xl">
+            {t.app.name}
+            <span className="text-blaze">.</span>
+          </p>
+        </div>
       </main>
     </>
   );

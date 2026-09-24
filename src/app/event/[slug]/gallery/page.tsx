@@ -4,7 +4,6 @@ import { Lock } from "lucide-react";
 import { GuestGallery } from "@/components/guest/guest-gallery";
 import { GuestNotice, GuestShell } from "@/components/guest/guest-shell";
 import { getPublicEvent } from "@/lib/public-event";
-import { PageTransition } from "@/components/page-transition";
 import { t } from "@/lib/i18n";
 
 export async function generateMetadata({ params }: PageProps<"/event/[slug]/gallery">): Promise<Metadata> {
@@ -20,8 +19,7 @@ export default async function GuestGalleryPage({ params }: PageProps<"/event/[sl
   if (!event) notFound();
 
   return (
-    <PageTransition>
-    <GuestShell event={event} className="gap-8">
+    <GuestShell event={event} enter="slide-in-from-right-6 fade-in" className="gap-8">
       <div className="mx-auto w-full max-w-6xl text-center">
         <p className="font-semibold tracking-[0.2em] uppercase">{t.guest.galleryTitle}</p>
         <h1 className="mt-1 font-serif text-5xl leading-tight">{event.title}</h1>
@@ -35,6 +33,5 @@ export default async function GuestGalleryPage({ params }: PageProps<"/event/[sl
         )}
       </div>
     </GuestShell>
-    </PageTransition>
   );
 }
