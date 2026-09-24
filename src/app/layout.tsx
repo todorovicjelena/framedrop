@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Figtree, Gloock } from "next/font/google";
 import { ConfirmProvider } from "@/components/confirm-provider";
 import { Toaster } from "@/components/toaster";
+import { TouchActive } from "@/components/touch-active";
 import { t } from "@/lib/i18n";
 import "./globals.css";
 
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <ConfirmProvider>{children}</ConfirmProvider>
         <Toaster />
+        <TouchActive />
       </body>
     </html>
   );

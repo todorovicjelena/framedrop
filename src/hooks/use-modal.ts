@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // Shared chrome for our full-screen overlays: Esc closes them, and the page
 // behind stops scrolling while one is open.
@@ -27,4 +27,28 @@ export function useModal(open: boolean, onClose: () => void) {
       document.body.style.overflow = overflow;
     };
   }, [open]);
+}
+
+// Keeps an overlay on screen long enough to play its exit animation: call
+// `close()` instead of closing directly, render the "leaving" styles while
+// `closing` is true, and the real close fires once the animation is done.
+export function useClosing(onClosed: () => void, ms = 180) {
+  const [closing, setClosing] = useState(false);
+  const onClosedRef = useRef(onClosed);
+  useEffect(() => {
+    onClosedRef.current = onClosed;
+  });
+
+  const close = useCallback(() => {
+    setClosing((already) => {
+      if (already) return already; // a second Esc shouldn't queue another timer
+      setTimeout(() => {
+        setClosing(false);
+        onClosedRef.current();
+      }, ms);
+      return true;
+    });
+  }, [ms]);
+
+  return { closing, close };
 }

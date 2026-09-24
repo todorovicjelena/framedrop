@@ -4,7 +4,8 @@
 import { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Download, Trash2, X } from "lucide-react";
 import type { GalleryItem } from "./gallery-grid";
-import { useModal } from "@/hooks/use-modal";
+import { useClosing, useModal } from "@/hooks/use-modal";
+import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
 // Full-screen viewer: photos and videos play in the page instead of opening
@@ -31,8 +32,10 @@ export function Lightbox({
   const hasPrev = index > 0;
   const hasNext = index < items.length - 1;
 
-  // Esc and the page scroll lock are shared with the other overlays.
-  useModal(true, onClose);
+  // Esc and the page scroll lock are shared with the other overlays; `close`
+  // lets the viewer fade out before it unmounts.
+  const { closing, close } = useClosing(onClose);
+  useModal(true, close);
 
   // ← → to browse, which is specific to the viewer.
   useEffect(() => {
@@ -46,14 +49,17 @@ export function Lightbox({
 
   if (!item) return null;
 
-  const button = "grid size-11 place-items-center rounded-full bg-cream/15 text-cream transition hover:bg-cream/25";
+  const button = "grid size-11 place-items-center rounded-full bg-cream/15 text-cream transition hover:bg-cream/25 active:scale-90";
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={item.guestName}
-      className="fixed inset-0 z-50 flex animate-in flex-col bg-ink/95 text-cream backdrop-blur duration-200 fade-in"
+      className={cn(
+        "fixed inset-0 z-50 flex flex-col bg-ink/95 text-cream backdrop-blur duration-200",
+        closing ? "animate-out fade-out fill-mode-forwards" : "animate-in fade-in",
+      )}
       onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
       onTouchEnd={(e) => {
         // Swipe left / right on phones
@@ -84,7 +90,7 @@ export function Lightbox({
               <Trash2 className="size-5" aria-hidden />
             </button>
           )}
-          <button type="button" onClick={onClose} className={button} aria-label={t.gallery.close} title={t.gallery.close}>
+          <button type="button" onClick={close} className={button} aria-label={t.gallery.close} title={t.gallery.close}>
             <X className="size-5" aria-hidden />
           </button>
         </div>
@@ -96,7 +102,10 @@ export function Lightbox({
             key={item.id}
             src={item.url}
             alt=""
-            className="max-h-full max-w-full animate-in rounded-xl object-contain duration-300 fade-in zoom-in-95"
+            className={cn(
+              "max-h-full max-w-full rounded-xl object-contain",
+              closing ? "animate-out duration-200 fade-out zoom-out-95 fill-mode-forwards" : "animate-in duration-300 fade-in zoom-in-95",
+            )}
           />
         ) : (
           <video

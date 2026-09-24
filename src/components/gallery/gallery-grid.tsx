@@ -108,6 +108,11 @@ export function GalleryGrid({
 
   const toRef = (it: GalleryItem): MediaRef => ({ url: it.url, name: it.fileName });
 
+  // The toolbar swaps whole sets of buttons when select mode toggles, so each
+  // one pops in rather than appearing out of nowhere.
+  const appear = "animate-in fade-in zoom-in-95 duration-200";
+  const pop = (i: number) => ({ animationDelay: `${i * 45}ms`, animationFillMode: "backwards" as const });
+
   // Open the viewer on the first item of a list so the guest can save them one by
   // one (the phone fallback when we can't share a whole batch at once).
   function guideOneByOne(list: GalleryItem[]) {
@@ -197,29 +202,30 @@ export function GalleryGrid({
         )}
         {!selecting ? (
           <>
-            <Button type="button" disabled={busy} onClick={() => save(visible)}>
+            <Button type="button" disabled={busy} onClick={() => save(visible)} className={appear} style={pop(0)}>
               <Download aria-hidden />
               {t.gallery.downloadAll(visible.length)}
             </Button>
-            <Button type="button" variant="outline" className="text-foreground" onClick={() => setSelecting(true)}>
+            <Button type="button" variant="outline" className={cn("text-foreground", appear)} style={pop(1)} onClick={() => setSelecting(true)}>
               <CheckSquare aria-hidden />
               {t.gallery.select}
             </Button>
           </>
         ) : (
           <>
-            <span className="rounded-full bg-card px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm">
+            <span className={cn("rounded-full bg-card px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm", appear)} style={pop(0)}>
               {t.gallery.selected(selected.size)}
             </span>
             <Button
               type="button"
               variant="outline"
-              className="text-foreground"
+              className={cn("text-foreground", appear)}
+              style={pop(1)}
               onClick={() => setSelected(new Set(visible.map((it) => it.id)))}
             >
               {t.gallery.selectAll}
             </Button>
-            <Button type="button" disabled={selected.size === 0 || busy} onClick={() => save(selectedItems)}>
+            <Button type="button" disabled={selected.size === 0 || busy} onClick={() => save(selectedItems)} className={appear} style={pop(2)}>
               <Download aria-hidden />
               {t.gallery.downloadSelected(selected.size)}
             </Button>
@@ -227,7 +233,8 @@ export function GalleryGrid({
               <Button
                 type="button"
                 variant="destructive"
-                className="bg-card"
+                className={cn("bg-card", appear)}
+                style={pop(3)}
                 onClick={async () => {
                   const ok = await confirm({
                     title: t.gallery.confirmDeleteMany(deletableSelected.length),
@@ -244,7 +251,7 @@ export function GalleryGrid({
                 {t.gallery.deleteSelected(deletableSelected.length)}
               </Button>
             )}
-            <Button type="button" variant="outline" className="text-foreground" onClick={stopSelecting}>
+            <Button type="button" variant="outline" className={cn("text-foreground", appear)} style={pop(4)} onClick={stopSelecting}>
               <X aria-hidden />
               {t.gallery.cancelSelect}
             </Button>
@@ -309,7 +316,7 @@ export function GalleryGrid({
                       onClick={() => saveOne(item)}
                       aria-label={t.gallery.download}
                       title={t.gallery.download}
-                      className="grid size-8 place-items-center rounded-full bg-cream/90 text-ink hover:bg-white"
+                      className="grid size-8 place-items-center rounded-full bg-cream/90 text-ink transition hover:bg-white active:scale-90"
                     >
                       <Download className="size-4" aria-hidden />
                     </button>
@@ -319,7 +326,7 @@ export function GalleryGrid({
                         onClick={() => removeOne(item.id)}
                         aria-label={t.gallery.delete}
                         title={t.gallery.delete}
-                        className="grid size-8 place-items-center rounded-full bg-cream/90 text-destructive hover:bg-white"
+                        className="grid size-8 place-items-center rounded-full bg-cream/90 text-destructive transition hover:bg-white active:scale-90"
                       >
                         <Trash2 className="size-4" aria-hidden />
                       </button>

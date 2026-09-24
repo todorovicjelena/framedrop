@@ -28,11 +28,15 @@ const ConfirmContext = createContext<Confirm | null>(null);
 //   const confirm = useConfirm();
 //   if (await confirm({ title: "Obrisati?" })) { … }
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  // `open` drives the animation; `options` outlives it so the dialog still has
+  // its text while it fades out, instead of emptying mid-animation.
   const [options, setOptions] = useState<ConfirmOptions | null>(null);
+  const [open, setOpen] = useState(false);
   const resolver = useRef<(value: boolean) => void>(null);
 
   const confirm = useCallback<Confirm>((opts) => {
     setOptions(opts);
+    setOpen(true);
     return new Promise((resolve) => {
       resolver.current = resolve;
     });
@@ -41,14 +45,15 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   function close(result: boolean) {
     resolver.current?.(result);
     resolver.current = null;
-    setOptions(null);
+    setOpen(false);
+    setTimeout(() => setOptions(null), 250);
   }
 
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      <AlertDialog open={options !== null} onOpenChange={(open) => !open && close(false)}>
-        <AlertDialogContent className="rounded-[1.75rem] p-6">
+      <AlertDialog open={open} onOpenChange={(next) => !next && close(false)}>
+        <AlertDialogContent className="rounded-[1.75rem] p-6 duration-200">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-serif text-2xl">{options?.title}</AlertDialogTitle>
             {options?.description && <AlertDialogDescription>{options.description}</AlertDialogDescription>}
