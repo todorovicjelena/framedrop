@@ -6,7 +6,15 @@ import { Check, CheckSquare, Download, Loader2, Play, Trash2, X } from "lucide-r
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/confirm-provider";
-import { downloadAsZip } from "@/lib/zip-download";
+import {
+  canShareFiles,
+  downloadZipFile,
+  isMobile,
+  MOBILE_SHARE_MAX,
+  shareFiles,
+  triggerDownload,
+  type MediaRef,
+} from "@/lib/download";
 import type { FileKind } from "@/lib/uploads";
 import { cn } from "@/lib/utils";
 import type { ActionResult } from "@/lib/result";
@@ -57,7 +65,9 @@ export function GalleryGrid({
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [zipProgress, setZipProgress] = useState<string | null>(null);
+  // A short status label while a ZIP is built or files are prepared for sharing.
+  const [saveProgress, setSaveProgress] = useState<string | null>(null);
+  const busy = saveProgress !== null;
 
   function deleteMany(ids: string[]) {
     if (!onDelete || ids.length === 0) return;
@@ -81,31 +91,65 @@ export function GalleryGrid({
     deleteMany([id]);
   }
 
-  async function zip(list: GalleryItem[]) {
-    if (list.length === 0 || zipProgress) return;
-    try {
-      const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const allImages = list.every((it) => it.kind === "image");
-      if (isMobile && allImages) {
-        // Inform mobile users that the native share sheet will open and how to save
-        // images to Photos/Files — this improves UX when we're sharing image files
-        // instead of a ZIP archive.
-        toast.info(
-          "Na telefonu će se otvoriti deljenje. Izaberi 'Save Images' ili 'Save to Files' da sačuvaš u Photos/Files.",
-        );
-      }
+  const toRef = (it: GalleryItem): MediaRef => ({ url: it.url, name: it.fileName });
 
-      const result = await downloadAsZip(
-        list.map((it) => ({ url: it.url, name: it.fileName })),
-        zipName,
-        (done, total) => setZipProgress(t.gallery.zipping(done, total)),
-      );
-      if (result === "saved") toast.success(t.gallery.zipReady);
+  // Open the viewer on the first item of a list so the guest can save them one by
+  // one (the phone fallback when we can't share a whole batch at once).
+  function guideOneByOne(list: GalleryItem[]) {
+    toast.info(t.gallery.guidedSaveHint);
+    const idx = list.length ? visible.findIndex((it) => it.id === list[0].id) : -1;
+    if (idx >= 0) setOpenIndex(idx);
+  }
+
+  // Save one file: on a phone, share it into Photos/Gallery; on a computer, download it.
+  async function saveOne(item: GalleryItem) {
+    if (isMobile() && canShareFiles()) {
+      const result = await shareFiles([toRef(item)]);
+      if (result === "shared") return;
+      // Sharing unavailable here — fall through to a plain download.
+    }
+    triggerDownload(item.downloadUrl, item.fileName);
+  }
+
+  // Toolbar "download all / selected". Computer → one ZIP. Phone → share to Photos
+  // (a handful at a time) or, for a big set, guide the guest through saving one by one.
+  async function save(list: GalleryItem[]) {
+    if (list.length === 0 || busy) return;
+
+    if (!isMobile()) {
+      try {
+        const result = await downloadZipFile(list.map(toRef), zipName, (done, total) =>
+          setSaveProgress(t.gallery.zipping(done, total)),
+        );
+        if (result === "saved") toast.success(t.gallery.zipReady);
+      } catch (e) {
+        console.error("ZIP download failed", e);
+        toast.error(t.gallery.zipFailed);
+      } finally {
+        setSaveProgress(null);
+      }
+      return;
+    }
+
+    if (list.length === 1) return void saveOne(list[0]);
+
+    // A whole album in one share would crash the tab on iOS — guide instead.
+    if (list.length > MOBILE_SHARE_MAX || !canShareFiles()) {
+      if (list.length > MOBILE_SHARE_MAX && canShareFiles()) toast.info(t.gallery.tooManyMobile(MOBILE_SHARE_MAX));
+      guideOneByOne(list);
+      return;
+    }
+
+    try {
+      toast.info(t.gallery.shareHint);
+      const result = await shareFiles(list.map(toRef), (done, total) => setSaveProgress(t.gallery.preparing(done, total)));
+      if (result === "shared") toast.success(t.gallery.saved);
+      else guideOneByOne(list);
     } catch (e) {
-      console.error("ZIP download failed", e);
-      toast.error(t.gallery.zipFailed);
+      console.error("share failed", e);
+      toast.error(t.gallery.saveFailed);
     } finally {
-      setZipProgress(null);
+      setSaveProgress(null);
     }
   }
 
@@ -130,15 +174,15 @@ export function GalleryGrid({
     <div className="flex flex-col gap-5">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        {zipProgress && (
+        {saveProgress && (
           <span className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm">
             <Loader2 className="size-4 animate-spin" aria-hidden />
-            {zipProgress}
+            {saveProgress}
           </span>
         )}
         {!selecting ? (
           <>
-            <Button type="button" disabled={!!zipProgress} onClick={() => zip(visible)}>
+            <Button type="button" disabled={busy} onClick={() => save(visible)}>
               <Download aria-hidden />
               {t.gallery.downloadAll(visible.length)}
             </Button>
@@ -160,7 +204,7 @@ export function GalleryGrid({
             >
               {t.gallery.selectAll}
             </Button>
-            <Button type="button" disabled={selected.size === 0 || !!zipProgress} onClick={() => zip(selectedItems)}>
+            <Button type="button" disabled={selected.size === 0 || busy} onClick={() => save(selectedItems)}>
               <Download aria-hidden />
               {t.gallery.downloadSelected(selected.size)}
             </Button>
@@ -241,14 +285,15 @@ export function GalleryGrid({
                 </div>
                 {!selecting && (
                   <div className="pointer-events-auto flex shrink-0 gap-1.5">
-                    <a
-                      href={item.downloadUrl}
+                    <button
+                      type="button"
+                      onClick={() => saveOne(item)}
                       aria-label={t.gallery.download}
                       title={t.gallery.download}
                       className="grid size-8 place-items-center rounded-full bg-cream/90 text-ink hover:bg-white"
                     >
                       <Download className="size-4" aria-hidden />
-                    </a>
+                    </button>
                     {item.canDelete && onDelete && (
                       <button
                         type="button"
@@ -275,6 +320,7 @@ export function GalleryGrid({
           onIndexChange={setOpenIndex}
           onClose={() => setOpenIndex(null)}
           onDelete={onDelete ? removeOne : undefined}
+          onSave={saveOne}
           subtitle={(item) => timeFormat.format(new Date(item.createdAt))}
         />
       )}
