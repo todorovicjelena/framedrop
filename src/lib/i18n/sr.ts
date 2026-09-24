@@ -225,6 +225,18 @@ export const sr = {
     previous: "Prethodna",
     next: "Sledeća",
   },
+  qr: {
+    open: "QR kod",
+    title: "QR kod za goste",
+    subtitle: "Gosti skeniraju i šalju slike i snimke — bez aplikacije.",
+    instruction: "Skeniraj i pošalji slike i snimke",
+    pinField: "PIN (da se odštampa na kartici)",
+    pinPlaceholder: "npr. 2027",
+    downloadCard: "Preuzmi karticu",
+    downloadQr: "Preuzmi QR",
+    print: "Štampaj",
+    close: "Zatvori",
+  },
   newEvent: {
     title: "Novi događaj",
     subtitle: "Osnovne informacije. Sve ostalo možete podesiti kasnije.",
