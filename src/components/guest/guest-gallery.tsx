@@ -15,7 +15,7 @@ const g = t.guest;
 // Loads through a Server Action because the PIN (if any) lives in this
 // browser's sessionStorage, which the server can't read during render.
 export function GuestGallery({ slug, hasPin }: { slug: string; hasPin: boolean }) {
-  const [pin, setPin] = useStoredValue("session", `framedrop:pin:${slug}`);
+  const [pin, setPin] = useStoredValue("session", `momentdrop:pin:${slug}`);
   const [items, setItems] = useState<GuestGalleryItem[] | null>(null);
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();

@@ -15,8 +15,8 @@ const g = t.guest;
 
 export function GuestUploader({ slug, hasPin, guestsCanView }: { slug: string; hasPin: boolean; guestsCanView: boolean }) {
   // Name is remembered on this phone; the PIN only for this browser session.
-  const [name, setName] = useStoredValue("local", "framedrop:guest-name");
-  const [pin, setPin] = useStoredValue("session", `framedrop:pin:${slug}`);
+  const [name, setName] = useStoredValue("local", "momentdrop:guest-name");
+  const [pin, setPin] = useStoredValue("session", `momentdrop:pin:${slug}`);
   const [editing, setEditing] = useState(false);
 
   const needsIdentity = editing || !name || (hasPin && !pin);
