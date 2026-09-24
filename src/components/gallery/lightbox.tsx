@@ -53,7 +53,7 @@ export function Lightbox({
       role="dialog"
       aria-modal="true"
       aria-label={item.guestName}
-      className="fixed inset-0 z-50 flex flex-col bg-ink/95 text-cream backdrop-blur"
+      className="fixed inset-0 z-50 flex animate-in flex-col bg-ink/95 text-cream backdrop-blur duration-200 fade-in"
       onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
       onTouchEnd={(e) => {
         // Swipe left / right on phones
@@ -92,7 +92,12 @@ export function Lightbox({
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-6 sm:px-16">
         {item.kind === "image" ? (
-          <img key={item.id} src={item.url} alt="" className="max-h-full max-w-full rounded-xl object-contain" />
+          <img
+            key={item.id}
+            src={item.url}
+            alt=""
+            className="max-h-full max-w-full animate-in rounded-xl object-contain duration-300 fade-in zoom-in-95"
+          />
         ) : (
           <video
             key={item.id}

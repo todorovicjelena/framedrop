@@ -64,12 +64,12 @@ function Uploader({
 
   if (allFinished && failed === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 py-2">
-        <div className="grid size-16 place-items-center rounded-full bg-primary text-primary-foreground">
+      <div className="flex animate-in flex-col items-center gap-3 py-2 duration-500 fade-in">
+        <div className="grid size-16 animate-in place-items-center rounded-full bg-primary text-primary-foreground duration-500 zoom-in-50">
           <Check className="size-8" aria-hidden />
         </div>
-        <p className="font-serif text-3xl">{g.thanksTitle(guestName)}</p>
-        <p className="text-muted-foreground">{g.thanksText(done)}</p>
+        <p className="animate-in font-serif text-3xl duration-500 fade-in slide-in-from-bottom-2">{g.thanksTitle(guestName)}</p>
+        <p className="animate-in text-muted-foreground duration-500 fade-in slide-in-from-bottom-2">{g.thanksText(done)}</p>
         <Button size="lg" className="mt-2 w-full" onClick={clear}>
           <ImagePlus aria-hidden />
           {g.sendMore}

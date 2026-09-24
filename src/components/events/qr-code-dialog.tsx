@@ -255,12 +255,12 @@ export function QrCodeDialog({
           role="dialog"
           aria-modal="true"
           aria-label={q.title}
-          className="fixed inset-0 z-50 grid place-items-center bg-ink/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid animate-in place-items-center bg-ink/60 p-4 backdrop-blur-sm duration-200 fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="flex max-h-[90vh] w-full max-w-md flex-col gap-4 overflow-auto rounded-[1.75rem] bg-cream p-5 text-ink shadow-xl">
+          <div className="flex max-h-[90vh] w-full max-w-md animate-in flex-col gap-4 overflow-auto rounded-[1.75rem] bg-cream p-5 text-ink shadow-xl duration-300 fade-in slide-in-from-bottom-4 zoom-in-95">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="font-serif text-2xl leading-tight">{q.title}</h2>

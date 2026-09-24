@@ -32,6 +32,9 @@ export type GalleryItem = {
   canDelete?: boolean;
 };
 
+// How long a tile's shrink-and-fade runs before it's removed from the list.
+const EXIT_MS = 180;
+
 const timeFormat = new Intl.DateTimeFormat("sr-Latn-RS", {
   day: "numeric",
   month: "short",
@@ -68,16 +71,28 @@ export function GalleryGrid({
   // A short status label while a ZIP is built or files are prepared for sharing.
   const [saveProgress, setSaveProgress] = useState<string | null>(null);
   const busy = saveProgress !== null;
+  // Tiles on their way out: they shrink and fade before leaving the list.
+  const [removing, setRemoving] = useState<Set<string>>(new Set());
 
   function deleteMany(ids: string[]) {
     if (!onDelete || ids.length === 0) return;
-    startTransition(async () => {
-      removeOptimistic(ids);
-      const results = await Promise.all(ids.map((id) => onDelete(id)));
-      const failed = results.find((r) => !r.ok);
-      if (failed && !failed.ok) toast.error(failed.error);
-      else toast.success(t.gallery.deleted(ids.length));
-    });
+    setRemoving((prev) => new Set([...prev, ...ids]));
+    // Let the exit animation play, then actually drop them.
+    setTimeout(() => {
+      startTransition(async () => {
+        removeOptimistic(ids);
+        const results = await Promise.all(ids.map((id) => onDelete(id)));
+        const failed = results.find((r) => !r.ok);
+        if (failed && !failed.ok) toast.error(failed.error);
+        else toast.success(t.gallery.deleted(ids.length));
+        // Clear the flag so a failed delete doesn't leave the tile faded out.
+        setRemoving((prev) => {
+          const next = new Set(prev);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+      });
+    }, EXIT_MS);
   }
 
   async function removeOne(id: string) {
@@ -243,9 +258,13 @@ export function GalleryGrid({
           return (
             <li
               key={item.id}
+              // Tiles fade in one after another; a deleted one shrinks away first.
+              style={{ animationDelay: `${Math.min(index, 11) * 40}ms`, animationFillMode: "backwards" }}
               className={cn(
-                "group relative aspect-square overflow-hidden rounded-2xl bg-lilac-soft shadow-sm transition",
+                "group relative aspect-square animate-in overflow-hidden rounded-2xl bg-lilac-soft shadow-sm",
+                "transition duration-200 fade-in zoom-in-95",
                 isSelected && "ring-4 ring-primary",
+                removing.has(item.id) && "scale-90 opacity-0",
               )}
             >
               <button

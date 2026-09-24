@@ -3,6 +3,7 @@ import { getOwnedEvent } from "@/lib/owned-event";
 import { presignGet } from "@/lib/r2";
 import { isoToLocalInput, type EventSettings } from "@/lib/events";
 import { SettingsForm } from "@/components/events/settings-form";
+import { PageTransition } from "@/components/page-transition";
 import { t } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: t.settings.title };
@@ -27,6 +28,7 @@ export default async function EventSettingsPage({ params }: PageProps<"/dashboar
   ]);
 
   return (
+    <PageTransition>
     <main className="flex w-full max-w-2xl flex-col gap-6">
       <SettingsForm
         event={{
@@ -45,5 +47,6 @@ export default async function EventSettingsPage({ params }: PageProps<"/dashboar
         }}
       />
     </main>
+    </PageTransition>
   );
 }

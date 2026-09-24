@@ -16,7 +16,7 @@ export function UploadRow({ item, onRetry, onDelete }: { item: UploadItem; onRet
     item.status === "uploading" ? `${g.status.uploading} ${item.progress}%` : item.error ?? g.status[item.status];
 
   return (
-    <li className="flex items-center gap-3 rounded-2xl bg-card p-2 pr-3 shadow-sm">
+    <li className="flex animate-in items-center gap-3 rounded-2xl bg-card p-2 pr-3 shadow-sm duration-300 fade-in slide-in-from-bottom-2">
       <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-lilac-soft">
         {item.previewUrl ? (
           // Local object URL preview (not a remote image).
@@ -33,13 +33,16 @@ export function UploadRow({ item, onRetry, onDelete }: { item: UploadItem; onRet
         <p className={cn("text-xs", item.status === "error" ? "text-destructive" : "text-muted-foreground")}>{label}</p>
         {(item.status === "uploading" || item.status === "preparing") && (
           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${item.status === "preparing" ? 5 : item.progress}%` }} />
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+              style={{ width: `${item.status === "preparing" ? 5 : item.progress}%` }}
+            />
           </div>
         )}
       </div>
       {item.status === "done" && (
         <>
-          <Check className="size-5 shrink-0 text-primary" aria-label={g.status.done} />
+          <Check className="size-5 shrink-0 animate-in text-primary duration-300 zoom-in-50" aria-label={g.status.done} />
           <Button
             type="button"
             variant="ghost"

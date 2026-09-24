@@ -21,7 +21,7 @@ export default async function EventLayout({ params, children }: LayoutProps<"/da
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
       <div className="flex flex-col gap-4">
         <nav aria-label="breadcrumb" className="flex items-center gap-1 text-sm font-semibold text-muted-foreground">
-          <Link href="/dashboard" className="hover:text-foreground">
+          <Link href="/dashboard" transitionTypes={["nav-back"]} className="hover:text-foreground">
             {t.nav.events}
           </Link>
           <ChevronRight className="size-4" aria-hidden />
