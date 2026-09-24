@@ -6,6 +6,8 @@ import QRCode from "qrcode";
 import { Download, Loader2, Printer, QrCode, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { triggerDownload } from "@/lib/download";
+import { useModal } from "@/hooks/use-modal";
 import { t } from "@/lib/i18n";
 
 const q = t.qr;
@@ -46,85 +48,143 @@ function drawWrapped(ctx: CanvasRenderingContext2D, text: string, cx: number, y:
   return y + shown.length * lineHeight;
 }
 
+// A centered rounded "pill" with a label inside. Returns its height.
+function pill(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+  opts: { font: string; textColor: string; bg: string; padX?: number; h?: number },
+) {
+  const { font, textColor, bg, padX = 42, h = 72 } = opts;
+  ctx.font = font;
+  const w = ctx.measureText(text).width + padX * 2;
+  roundRect(ctx, cx - w / 2, cy - h / 2, w, h, h / 2);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.fillStyle = textColor;
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, cx, cy + 2);
+  ctx.textBaseline = "alphabetic";
+  return h;
+}
+
+// Brand palette, straight from globals.css.
+const CREAM = "#f9f2e6";
+const LILAC = "#cfb0ff";
+const BLAZE = "#ff6a33";
+const INK = "#1d1b24";
+
+// The same orange ribbons as <Swirls /> (viewBox 1200×800), so the printed card
+// reads as part of the site.
+const SWIRLS: [string, number][] = [
+  ["M-80 180C120 40 330 20 420 140C510 260 360 420 190 520C40 610 -40 720 -60 900", 150],
+  ["M1300 40C1080 120 930 300 880 520C840 700 900 820 980 900", 130],
+  ["M560 -120C640 20 760 60 860 20", 110],
+  ["M430 930C520 760 700 700 820 780", 100],
+];
+
 async function buildCard(url: string, title: string, pin: string): Promise<string> {
   const W = 1080;
   const H = 1500;
+  const px = 40;
+  const py = 40;
+  const pw = W - px * 2;
+  const ph = H - py * 2;
+  const cx = W / 2;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d context");
+  const ls = ctx as CanvasRenderingContext2D & { letterSpacing: string };
 
-  // Cream page with a white card inside and a blaze accent stripe on top.
+  // Cream page, then the rounded lilac panel.
   ctx.fillStyle = "#fbf6ee";
   ctx.fillRect(0, 0, W, H);
-  roundRect(ctx, 56, 56, W - 112, H - 112, 56);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  roundRect(ctx, 56, 56, W - 112, 120, 56);
-  ctx.fillStyle = "#f45a1f";
-  ctx.fill();
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(56, 130, W - 112, 46);
+  ctx.save();
+  roundRect(ctx, px, py, pw, ph, 72);
+  ctx.clip();
+  ctx.fillStyle = LILAC;
+  ctx.fillRect(px, py, pw, ph);
+
+  // Orange swirls, scaled to cover the panel (same as preserveAspectRatio="slice").
+  const scale = Math.max(pw / 1200, ph / 800);
+  ctx.save();
+  ctx.translate(px + (pw - 1200 * scale) / 2, py + (ph - 800 * scale) / 2);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = BLAZE;
+  ctx.lineCap = "round";
+  for (const [d, width] of SWIRLS) {
+    ctx.lineWidth = width;
+    ctx.stroke(new Path2D(d));
+  }
+  ctx.restore();
+  ctx.restore();
 
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
 
-  // Title.
-  ctx.fillStyle = "#1d1b24";
-  ctx.font = "bold 66px Georgia, 'Times New Roman', serif";
-  const afterTitle = drawWrapped(ctx, title, W / 2, 290, W - 240, 78);
+  // Kicker.
+  ls.letterSpacing = "2px";
+  ctx.fillStyle = CREAM;
+  ctx.font = "600 30px system-ui, -apple-system, sans-serif";
+  ctx.fillText(q.kicker, cx, py + 140);
+  ls.letterSpacing = "0px";
 
-  // Instruction.
-  ctx.fillStyle = "#6b6574";
-  ctx.font = "500 34px system-ui, -apple-system, sans-serif";
-  const instrY = Math.max(afterTitle + 6, 360);
-  ctx.fillText(q.instruction, W / 2, instrY);
+  // Event name — the big cream serif headline.
+  ctx.fillStyle = CREAM;
+  ctx.font = "84px Georgia, 'Times New Roman', serif";
+  const afterTitle = drawWrapped(ctx, title, cx, py + 270, pw - 140, 92);
 
-  // QR in a soft lilac frame.
-  const qr = document.createElement("canvas");
-  await QRCode.toCanvas(qr, url, { width: 600, margin: 1, color: { dark: "#1d1b24", light: "#ffffff" } });
-  const qs = 600;
+  // QR on a white block, so it always scans.
+  const qs = 520;
+  const pad = 42;
+  const block = qs + pad * 2;
   const qx = (W - qs) / 2;
-  const qy = instrY + 60;
-  ctx.fillStyle = "#ede3ff";
-  roundRect(ctx, qx - 40, qy - 40, qs + 80, qs + 80, 40);
-  ctx.fill();
+  const blockY = afterTitle + 56;
+  const qr = document.createElement("canvas");
+  await QRCode.toCanvas(qr, url, { width: qs, margin: 0, color: { dark: INK, light: "#ffffff" } });
   ctx.fillStyle = "#ffffff";
-  roundRect(ctx, qx - 20, qy - 20, qs + 40, qs + 40, 28);
+  roundRect(ctx, cx - block / 2, blockY, block, block, 40);
   ctx.fill();
-  ctx.drawImage(qr, qx, qy);
+  ctx.drawImage(qr, qx, blockY + pad);
 
-  // Link text.
-  const shortUrl = url.replace(/^https?:\/\//, "");
-  ctx.fillStyle = "#1d1b24";
-  ctx.font = "600 32px system-ui, -apple-system, sans-serif";
-  let y = qy + qs + 110;
-  ctx.fillText(shortUrl, W / 2, y);
+  // Instruction in a cream pill, like the description on the site.
+  let y = blockY + block + 70;
+  pill(ctx, q.instruction, cx, y, {
+    font: "500 29px system-ui, -apple-system, sans-serif",
+    textColor: INK,
+    bg: "rgba(249,242,230,0.92)",
+    h: 76,
+    padX: 36,
+  });
 
-  // Optional PIN.
+  // The link itself, in cream.
+  y += 78;
+  ctx.fillStyle = CREAM;
+  ctx.font = "600 30px system-ui, -apple-system, sans-serif";
+  ctx.fillText(url.replace(/^https?:\/\//, ""), cx, y);
+
+  // Optional PIN, as a blaze button.
   if (pin) {
-    y += 78;
-    ctx.fillStyle = "#f45a1f";
-    ctx.font = "bold 46px system-ui, -apple-system, sans-serif";
-    ctx.fillText(`PIN: ${pin}`, W / 2, y);
+    y += 74;
+    pill(ctx, `PIN · ${pin}`, cx, y, {
+      font: "bold 36px system-ui, -apple-system, sans-serif",
+      textColor: CREAM,
+      bg: BLAZE,
+      h: 78,
+    });
   }
 
-  // Footer.
-  ctx.fillStyle = "#9a94a3";
-  ctx.font = "500 26px system-ui, -apple-system, sans-serif";
-  ctx.fillText(t.app.name, W / 2, H - 120);
+  // Uppercase strip at the bottom, like the site's footer line.
+  ls.letterSpacing = "1px";
+  ctx.fillStyle = CREAM;
+  ctx.font = "800 26px system-ui, -apple-system, sans-serif";
+  ctx.fillText(`${t.app.name} · ${q.footer}`.toUpperCase(), cx, H - py - 60);
+  ls.letterSpacing = "0px";
 
   return canvas.toDataURL("image/png");
-}
-
-function download(dataUrl: string, filename: string) {
-  const a = document.createElement("a");
-  a.href = dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }
 
 // Prints an image on its own page via a hidden iframe (no popup, prints only the card).
@@ -175,24 +235,12 @@ export function QrCodeDialog({
     return () => clearTimeout(id);
   }, [open, render]);
 
-  // Esc to close + lock page scroll while open.
-  useEffect(() => {
-    if (!open) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("keydown", onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-    };
-  }, [open]);
+  // Esc and the page scroll lock are shared with the other overlays.
+  useModal(open, () => setOpen(false));
 
   async function downloadPlainQr() {
-    const dataUrl = await QRCode.toDataURL(url, { width: 1024, margin: 2, color: { dark: "#1d1b24", light: "#ffffff" } });
-    download(dataUrl, `qr-${fileBase}.png`);
+    const dataUrl = await QRCode.toDataURL(url, { width: 1024, margin: 2, color: { dark: INK, light: "#ffffff" } });
+    triggerDownload(dataUrl, `qr-${fileBase}.png`);
   }
 
   return (
@@ -252,7 +300,7 @@ export function QrCodeDialog({
             )}
 
             <div className="flex flex-wrap gap-2">
-              <Button type="button" disabled={!cardUrl} onClick={() => cardUrl && download(cardUrl, `qr-kartica-${fileBase}.png`)}>
+              <Button type="button" disabled={!cardUrl} onClick={() => cardUrl && triggerDownload(cardUrl, `qr-kartica-${fileBase}.png`)}>
                 <Download aria-hidden />
                 {q.downloadCard}
               </Button>

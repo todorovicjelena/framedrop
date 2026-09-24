@@ -79,10 +79,7 @@ export async function downloadZipFile(
   }
 
   const blobUrl = URL.createObjectURL(await zip.blob());
-  const a = document.createElement("a");
-  a.href = blobUrl;
-  a.download = zipName;
-  a.click();
+  triggerDownload(blobUrl, zipName);
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   return "saved";
 }
