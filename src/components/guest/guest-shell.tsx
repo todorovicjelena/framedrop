@@ -30,7 +30,7 @@ export function GuestShell({
         style={{ "--color-blaze": event.primary_color, "--primary": event.primary_color } as React.CSSProperties}
       >
         <Swirls />
-        <div className={cn("flex flex-1 flex-col animate-in duration-300 ease-out", enter, className)}>
+        <div className={cn("flex flex-1 flex-col animate-in duration-500 ease-out", enter, className)}>
           {event.guests_can_view && <GuestTabs slug={event.slug} />}
           {children}
           <p className="mt-auto pt-10 text-center font-serif text-xl">

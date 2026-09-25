@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 // still loading. This just adds a CSS enter animation to the page's own root
 // element (via cloneElement, so there's no extra wrapper box to disturb the
 // layout), so it's smooth, flash-free and identical on every page.
-const ENTER = "animate-in fade-in duration-300";
+const ENTER = "animate-in fade-in duration-500 ease-out";
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
   if (!isValidElement(children)) return <>{children}</>;
