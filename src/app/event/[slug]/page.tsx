@@ -24,7 +24,7 @@ export default async function GuestEventPage({ params }: PageProps<"/event/[slug
   const date = formatEventDate(event.event_date);
 
   return (
-    <GuestShell event={event} enter="slide-in-from-left-6 fade-in" className="items-center px-5 text-center">
+    <GuestShell event={event} enter="slide-in-from-bottom-4 fade-in" className="items-center px-5 text-center">
       {event.cover_url && (
         <img src={event.cover_url} alt="" className="mt-6 mb-8 aspect-[5/2] w-full max-w-xl rounded-[2rem] object-cover shadow-xl" />
       )}
