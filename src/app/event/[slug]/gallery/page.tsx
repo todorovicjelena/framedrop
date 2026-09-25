@@ -19,7 +19,7 @@ export default async function GuestGalleryPage({ params }: PageProps<"/event/[sl
   if (!event) notFound();
 
   return (
-    <GuestShell event={event} enter="slide-in-from-right-6 fade-in" className="gap-8">
+    <GuestShell event={event} enter="slide-in-from-bottom-4 fade-in" className="gap-8">
       <div className="mx-auto w-full max-w-6xl text-center">
         <p className="font-semibold tracking-[0.2em] uppercase">{t.guest.galleryTitle}</p>
         <h1 className="mt-1 font-serif text-5xl leading-tight">{event.title}</h1>
