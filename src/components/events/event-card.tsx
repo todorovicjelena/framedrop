@@ -28,7 +28,7 @@ export function EventCard({ event }: { event: EventRow }) {
           {t.eventTypeLabels[event.event_type]}
         </p>
         <h2 className="truncate font-heading text-xl font-bold sm:text-2xl">
-          <Link href={`/dashboard/events/${event.id}`} transitionTypes={["nav-forward"]} className="hover:underline">
+          <Link href={`/dashboard/events/${event.id}`} className="hover:underline">
             {event.title}
           </Link>
         </h2>
@@ -60,7 +60,6 @@ export function EventCard({ event }: { event: EventRow }) {
       <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
         <Link
           href={`/dashboard/events/${event.id}/gallery`}
-          transitionTypes={["nav-forward"]}
           aria-label={t.gallery.open}
           className={cn(buttonVariants({ size: "icon-lg" }), "sm:w-auto sm:px-4")}
         >
@@ -69,7 +68,6 @@ export function EventCard({ event }: { event: EventRow }) {
         </Link>
         <Link
           href={`/dashboard/events/${event.id}`}
-          transitionTypes={["nav-forward"]}
           aria-label={t.settings.open}
           className={cn(buttonVariants({ variant: "outline", size: "icon-lg" }), "sm:w-auto sm:px-4")}
         >

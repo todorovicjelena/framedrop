@@ -5,7 +5,6 @@ import { CalendarDays, Lock } from "lucide-react";
 import { DancingFlowers } from "@/components/dancing-flowers";
 import { GuestUploader } from "@/components/guest/guest-uploader";
 import { GuestNotice, GuestShell } from "@/components/guest/guest-shell";
-import { PageTransition } from "@/components/page-transition";
 import { getPublicEvent } from "@/lib/public-event";
 import { formatEventDate, isUploadClosed } from "@/lib/events";
 import { t } from "@/lib/i18n";
@@ -25,8 +24,7 @@ export default async function GuestEventPage({ params }: PageProps<"/event/[slug
   const date = formatEventDate(event.event_date);
 
   return (
-    <PageTransition>
-    <GuestShell event={event} className="items-center px-5 text-center">
+    <GuestShell event={event} enter="slide-in-from-left-6 fade-in" className="items-center px-5 text-center">
       {event.cover_url && (
         <img src={event.cover_url} alt="" className="mt-6 mb-8 aspect-[5/2] w-full max-w-xl rounded-[2rem] object-cover shadow-xl" />
       )}
@@ -63,6 +61,5 @@ export default async function GuestEventPage({ params }: PageProps<"/event/[slug
         </div>
       </div>
     </GuestShell>
-    </PageTransition>
   );
 }

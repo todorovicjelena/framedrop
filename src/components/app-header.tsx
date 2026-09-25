@@ -8,11 +8,7 @@ import { t } from "@/lib/i18n";
 // Header for logged-in pages: logo, "Moji događaji", logout.
 export function AppHeader() {
   return (
-    // viewTransitionName: the header is the fixed anchor while pages slide (globals.css).
-    <header
-      style={{ viewTransitionName: "site-header" }}
-      className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur"
-    >
+    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-2 px-4">
         <Logo href="/dashboard" />
         <nav className="flex items-center gap-1">
